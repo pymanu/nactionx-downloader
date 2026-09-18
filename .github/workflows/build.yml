@@ -1,0 +1,96 @@
+name: Compilar NactionX Downloader
+
+on:
+  workflow_dispatch:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: ${{ matrix.label }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - label: Windows x64
+            os: windows-latest
+            platform: windows
+            arch: x64
+          - label: macOS Apple Silicon
+            os: macos-14
+            platform: macos
+            arch: arm64
+          - label: macOS Intel
+            os: macos-15-intel
+            platform: macos
+            arch: x64
+    env:
+      NACTIONX_ARCH: ${{ matrix.arch }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Dependencias
+        run: python -m pip install -r requirements-build.txt
+
+      - name: Iconos
+        run: python packaging/make_icons.py
+
+      - name: Tests
+        run: python -m pytest tests -q -p no:cacheprovider
+
+      # Windows: distribución sobre Python oficial firmado (compatible con Smart App Control)
+      - name: Distribución portable de Windows
+        if: matrix.platform == 'windows'
+        run: python packaging/build_windows_portable.py --work build --zip
+
+      - name: Prueba de la app empaquetada (Windows)
+        if: matrix.platform == 'windows'
+        run: python packaging/smoke_test.py --app "build/portable/NactionX Downloader/runtime/pythonw.exe" --work "${{ runner.temp }}/smoke"
+
+      - name: Instalador de Windows
+        if: matrix.platform == 'windows'
+        shell: pwsh
+        run: |
+          choco install innosetup --no-progress -y
+          $iscc = Get-ChildItem "${env:ProgramFiles(x86)}", "$env:ProgramFiles" -Filter ISCC.exe -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
+          if (-not $iscc) { throw 'No se encontró ISCC.exe' }
+          $version = python -c "import nactionx; print(nactionx.__version__)"
+          & $iscc.FullName "/DAppVersion=$version" "/DSourceDir=$PWD\build\portable\NactionX Downloader" "/DOutputDir=$PWD\releases" packaging\windows\installer.iss
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+
+      # macOS: .app con PyInstaller
+      - name: FFmpeg y Deno oficiales (con verificación SHA-256)
+        if: matrix.platform == 'macos'
+        run: python packaging/fetch_components.py --platform macos --arch ${{ matrix.arch }}
+
+      - name: PyInstaller
+        if: matrix.platform == 'macos'
+        run: python -m PyInstaller packaging/nactionx.spec --noconfirm --clean
+
+      - name: Prueba de la app empaquetada (macOS)
+        if: matrix.platform == 'macos'
+        run: python packaging/smoke_test.py --app "dist/NactionX Downloader.app/Contents/MacOS/NactionX Downloader" --work "${{ runner.temp }}/smoke"
+
+      - name: DMG de macOS
+        if: matrix.platform == 'macos'
+        run: bash packaging/make_dmg.sh ${{ matrix.arch }}
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: NactionX-Downloader-${{ matrix.platform }}-${{ matrix.arch }}
+          path: releases/*
+          if-no-files-found: error
+
+      - name: Publicar en la release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: releases/*

@@ -1,0 +1,230 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NactionX Downloader</title>
+<link rel="icon" href="icon.svg">
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+<div class="app">
+  <aside class="side">
+    <div class="brand">
+      <div class="logo" aria-hidden="true"><svg class="i" viewBox="0 0 24 24"><path d="M12 4v11m-5-5 5 5 5-5M5 20h14"/></svg></div>
+      <div><b>NactionX</b><small>Downloader</small></div>
+    </div>
+    <nav id="nav" aria-label="Secciones">
+      <button data-view="downloads" class="active"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Descargas<span class="count" id="navCount" hidden></span></button>
+      <button data-view="history"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15.5 14"/></svg>Historial</button>
+      <button data-view="settings"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg>Ajustes</button>
+    </nav>
+    <div class="side-stats" aria-live="polite">
+      <div class="stat wide"><span>Velocidad total</span><b class="tnum" id="stSpeed">0 B/s</b></div>
+      <div class="stat"><span>Activas</span><b class="tnum" id="stActive">0</b></div>
+      <div class="stat"><span>En cola</span><b class="tnum" id="stQueued">0</b></div>
+      <div class="stat"><span>Hechas</span><b class="tnum" id="stDone">0</b></div>
+      <div class="stat"><span>Errores</span><b class="tnum" id="stErr">0</b></div>
+    </div>
+    <div class="side-foot">
+      <button class="update-pill" id="updatePill" hidden><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg><span id="updatePillText">Actualización del motor</span></button>
+      <div class="conn" id="conn"><i class="dot"></i><span id="connText">Conectando…</span></div>
+      <small id="verText"></small>
+    </div>
+  </aside>
+
+  <main id="main">
+    <!-- ================= DESCARGAS ================= -->
+    <section class="view" id="view-downloads">
+      <div class="omni">
+        <div class="omnibox">
+          <svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+          <label class="sr" for="q">Enlace o búsqueda</label>
+          <input id="q" autocomplete="off" spellcheck="false" placeholder="Pega un enlace de vídeo, playlist o canal… o escribe para buscar en YouTube">
+          <kbd id="pasteKbd">Ctrl V</kbd>
+          <button class="btn primary" id="btnAnalyze">Analizar</button>
+        </div>
+        <button class="btn side-b" id="btnBatch" title="Añadir muchos enlaces a la vez"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><line x1="9" y1="6" x2="21" y2="6"/><line x1="9" y1="12" x2="21" y2="12"/><line x1="9" y1="18" x2="21" y2="18"/><circle cx="4" cy="6" r="1"/><circle cx="4" cy="12" r="1"/><circle cx="4" cy="18" r="1"/></svg>Lote</button>
+      </div>
+
+      <div class="optbar">
+        <div class="seg" id="modeSeg" role="group" aria-label="Tipo de descarga">
+          <button data-mode="video"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="5" width="15" height="14" rx="2"/><path d="m17 10 5-3v10l-5-3"/></svg>Vídeo</button>
+          <button data-mode="audio"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>Audio</button>
+        </div>
+        <label class="field" data-for="video"><span>Calidad</span><select id="oQuality" data-key="quality"></select></label>
+        <label class="field" data-for="video"><span>Formato</span><select id="oContainer" data-key="container">
+          <option value="mp4">MP4</option><option value="mkv">MKV</option><option value="webm">WEBM</option></select></label>
+        <label class="field" data-for="video"><span>Códec</span><select id="oCodec" data-key="codec">
+          <option value="auto">Auto (mejor calidad)</option><option value="h264">H.264 (máxima compatibilidad)</option><option value="vp9">VP9</option><option value="av01">AV1</option></select></label>
+        <label class="field" data-for="audio"><span>Formato</span><select id="oAudioFormat" data-key="audio_format">
+          <option value="mp3">MP3</option><option value="m4a">M4A (AAC)</option><option value="opus">OPUS</option><option value="flac">FLAC (sin pérdida)</option><option value="wav">WAV (sin comprimir)</option><option value="original">Original (sin convertir)</option></select></label>
+        <label class="field" data-for="audio" id="bitrateField"><span>Bitrate</span><select id="oBitrate" data-key="audio_bitrate">
+          <option value="320">320 kbps</option><option value="256">256 kbps</option><option value="192">192 kbps</option><option value="128">128 kbps</option></select></label>
+        <div class="folder" title="Carpeta de destino">
+          <svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+          <span class="path" data-folder-path></span>
+          <span class="fchip" data-folder-free hidden></span>
+          <span class="fchip warn" data-folder-cloud hidden></span>
+          <button class="btn sm" data-pick>Cambiar</button>
+          <button class="ibtn" data-openfolder title="Abrir carpeta" aria-label="Abrir carpeta de destino"><svg class="i" viewBox="0 0 24 24"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg></button>
+        </div>
+        <button class="btn ghost" id="btnAdv" aria-expanded="false" aria-controls="adv"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>Avanzado</button>
+      </div>
+
+      <div class="card adv" id="adv" hidden>
+        <div class="opt" data-for="video"><div class="lbl"><b>Subtítulos</b><small>Descargar pistas de subtítulos</small></div><label class="switch"><input type="checkbox" data-key="subtitles" aria-label="Subtítulos"><span></span></label></div>
+        <div class="opt" data-for="video"><div class="lbl"><b>Idiomas</b><small>Códigos separados por coma</small></div><input type="text" data-key="sub_langs" placeholder="es,en" aria-label="Idiomas de subtítulos"></div>
+        <div class="opt" data-for="video"><div class="lbl"><b>Subtítulos automáticos</b><small>Si no hay subtítulos reales</small></div><label class="switch"><input type="checkbox" data-key="auto_subs" aria-label="Subtítulos automáticos"><span></span></label></div>
+        <div class="opt" data-for="video"><div class="lbl"><b>Incrustar subtítulos</b><small>Dentro del vídeo (si no, .srt aparte)</small></div><label class="switch"><input type="checkbox" data-key="embed_subs" aria-label="Incrustar subtítulos"><span></span></label></div>
+        <div class="opt"><div class="lbl"><b>Carátula</b><small>Incrusta la miniatura en el archivo</small></div><label class="switch"><input type="checkbox" data-key="embed_thumbnail" aria-label="Incrustar carátula"><span></span></label></div>
+        <div class="opt"><div class="lbl"><b>Metadatos y capítulos</b><small>Título, artista, fecha, capítulos</small></div><label class="switch"><input type="checkbox" data-key="embed_metadata" aria-label="Metadatos y capítulos"><span></span></label></div>
+        <div class="opt"><div class="lbl"><b>SponsorBlock</b><small>Quita patrocinios y autopromoción</small></div><label class="switch"><input type="checkbox" data-key="sponsorblock" aria-label="SponsorBlock"><span></span></label></div>
+        <div class="opt"><div class="lbl"><b>Subcarpeta por playlist</b><small>Agrupa cada lista en su carpeta</small></div><label class="switch"><input type="checkbox" data-key="playlist_subfolder" aria-label="Subcarpeta por playlist"><span></span></label></div>
+        <div class="full">
+          <div class="lbl" style="min-width:150px"><b style="font-size:13px">Nombre de archivo</b></div>
+          <select id="tplPreset" aria-label="Plantilla de nombre">
+            <option value="%(title)s.%(ext)s">Título</option>
+            <option value="%(title)s [%(id)s].%(ext)s">Título [ID]</option>
+            <option value="%(uploader)s - %(title)s.%(ext)s">Canal - Título</option>
+            <option value="%(upload_date>%Y-%m-%d)s - %(title)s.%(ext)s">Fecha - Título</option>
+            <option value="%(uploader)s/%(title)s.%(ext)s">Carpeta por canal / Título</option>
+            <option value="custom">Personalizado…</option>
+          </select>
+          <input type="text" id="tplInput" spellcheck="false" aria-label="Plantilla personalizada" placeholder="%(title)s.%(ext)s">
+          <button class="btn sm" id="tplSave" hidden>Guardar plantilla</button>
+        </div>
+      </div>
+
+      <div class="banner warn" id="issuesBanner" hidden>
+        <svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        <div class="t" id="issuesText"></div>
+        <button class="btn sm" data-goto="settings">Ver motor</button>
+      </div>
+
+      <div class="banner" id="clipBanner" hidden>
+        <svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1"/></svg>
+        <div class="t"><b>Enlace en el portapapeles</b> <span id="clipUrl"></span></div>
+        <button class="btn sm" id="clipAnalyze">Analizar</button>
+        <button class="btn sm primary" id="clipAdd">Añadir directo</button>
+        <button class="ibtn" id="clipClose" aria-label="Descartar"><svg class="i" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+      </div>
+
+      <div id="preview" aria-live="polite"></div>
+
+      <section class="queue" aria-label="Cola de descargas">
+        <div class="qhead">
+          <h3>Cola de descargas</h3>
+          <div class="tabs" id="qTabs" role="tablist">
+            <button data-f="all" class="on">Todas <i>0</i></button>
+            <button data-f="active">Activas <i>0</i></button>
+            <button data-f="queued">En espera <i>0</i></button>
+            <button data-f="done">Completadas <i>0</i></button>
+            <button data-f="error">Fallidas <i>0</i></button>
+          </div>
+          <div class="qactions">
+            <label class="field" title="Descargas simultáneas"><span>Simultáneas</span><select data-key="concurrency" data-concurrency></select></label>
+            <button class="btn sm" id="btnPauseAll"></button>
+            <button class="btn sm" id="btnRetryFailed" title="Reintentar todas las fallidas y canceladas"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>Reintentar</button>
+            <button class="btn sm" id="btnClearDone" title="Quitar completadas y canceladas de la lista"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>Limpiar</button>
+            <button class="btn sm danger" id="btnCancelAll" title="Cancelar todo" aria-label="Cancelar todo"><svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg></button>
+          </div>
+        </div>
+        <div id="qList"></div>
+        <div class="empty" id="qEmpty">
+          <div class="ill"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></div>
+          <b id="emptyTitle">La cola está vacía</b>
+          <p id="emptyText"></p>
+          <div class="keys" id="emptyKeys"></div>
+        </div>
+      </section>
+    </section>
+
+    <!-- ================= HISTORIAL ================= -->
+    <section class="view" id="view-history" hidden>
+      <div class="page-h">
+        <h1>Historial</h1><span class="sub" id="hCount"></span><span class="grow"></span>
+        <input id="hSearch" placeholder="Buscar en el historial…" aria-label="Buscar en el historial">
+        <button class="btn danger" id="btnClearHistory"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>Borrar historial</button>
+      </div>
+      <div class="card" id="hList" style="overflow:hidden"></div>
+    </section>
+
+    <!-- ================= AJUSTES ================= -->
+    <section class="view" id="view-settings" hidden>
+      <div class="page-h"><h1>Ajustes</h1></div>
+
+      <div class="card sgroup">
+        <h4>Descargas</h4>
+        <div class="srow"><div class="lbl"><b>Carpeta de destino</b><small>Donde se guardan los archivos</small><div class="note" data-folder-note hidden></div></div>
+          <div class="ctl"><div class="folder"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg><span class="path" data-folder-path></span><span class="fchip" data-folder-free hidden></span><button class="btn sm" data-pick>Cambiar</button><button class="ibtn" data-openfolder title="Abrir" aria-label="Abrir carpeta de destino"><svg class="i" viewBox="0 0 24 24"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg></button></div></div></div>
+        <div class="srow"><div class="lbl"><b>Descargas simultáneas</b><small>Cuántos archivos se descargan a la vez; el resto espera en cola</small></div><div class="ctl"><select data-key="concurrency" data-concurrency aria-label="Descargas simultáneas"></select></div></div>
+        <div class="srow"><div class="lbl"><b>Límite de velocidad</b><small>Por descarga. Útil para no saturar tu conexión</small></div><div class="ctl"><select data-key="rate_limit" aria-label="Límite de velocidad">
+          <option value="">Sin límite</option><option value="500K">500 KB/s</option><option value="1M">1 MB/s</option><option value="2M">2 MB/s</option><option value="5M">5 MB/s</option><option value="10M">10 MB/s</option><option value="20M">20 MB/s</option></select></div></div>
+      </div>
+
+      <div class="card sgroup">
+        <h4>Cuenta y red</h4>
+        <div class="srow"><div class="lbl"><b>Cookies del navegador</b><small>Para vídeos con restricción de edad, privados o de miembros</small><div class="note" id="cookiesNote" hidden></div></div><div class="ctl"><select data-key="cookies_browser" id="oCookiesBrowser" aria-label="Navegador para cookies">
+          <option value="">No usar</option><option value="firefox">Firefox (recomendado)</option><option value="chrome">Chrome</option><option value="edge">Edge</option><option value="brave">Brave</option><option value="opera">Opera</option><option value="vivaldi">Vivaldi</option><option value="safari">Safari</option></select></div></div>
+        <div class="srow"><div class="lbl"><b>Archivo de cookies</b><small>Un archivo cookies.txt exportado con una extensión del navegador. Tiene prioridad sobre la opción anterior</small></div><div class="ctl"><span class="pathbox" id="cookiesFilePath">Ninguno</span><button class="btn sm" id="btnCookiesFile">Elegir archivo</button><button class="btn sm ghost" id="btnCookiesClear" hidden>Quitar</button></div></div>
+        <div class="srow"><div class="lbl"><b>Proxy</b><small>Opcional. Ejemplo: http://127.0.0.1:8080 o socks5://host:1080</small></div><div class="ctl"><input type="text" class="wide" id="proxyInput" spellcheck="false" placeholder="Sin proxy" aria-label="Proxy"><button class="btn sm" id="btnProxySave">Guardar</button></div></div>
+      </div>
+
+      <div class="card sgroup">
+        <h4>Comportamiento</h4>
+        <div class="srow"><div class="lbl"><b>Añadir directamente al pegar</b><small>Pegar un enlace lo manda a la cola sin vista previa, con las opciones actuales</small></div><div class="ctl"><label class="switch"><input type="checkbox" data-key="auto_add" aria-label="Añadir directamente al pegar"><span></span></label></div></div>
+        <div class="srow"><div class="lbl"><b>Detectar enlaces en el portapapeles</b><small>Al volver a la ventana, ofrece añadir el enlace que hayas copiado</small></div><div class="ctl"><label class="switch"><input type="checkbox" data-key="clipboard" aria-label="Detectar enlaces en el portapapeles"><span></span></label></div></div>
+        <div class="srow"><div class="lbl"><b>Notificaciones</b><small>Un aviso del sistema cuando termina la cola (no uno por archivo)</small></div><div class="ctl"><label class="switch"><input type="checkbox" data-key="notify" aria-label="Notificaciones"><span></span></label></div></div>
+        <div class="srow" id="shortcutsRow" hidden><div class="lbl"><b>Accesos directos</b><small>Crea accesos a NactionX Downloader en el escritorio y en el menú Inicio</small></div><div class="ctl"><button class="btn sm" id="btnShortcuts">Crear accesos directos</button></div></div>
+        <div class="srow"><div class="lbl"><b>Buscar actualizaciones del motor al abrir</b><small>YouTube cambia a menudo: tener el motor al día evita errores</small></div><div class="ctl"><label class="switch"><input type="checkbox" data-key="check_updates" aria-label="Buscar actualizaciones al abrir"><span></span></label></div></div>
+      </div>
+
+      <div class="card sgroup">
+        <h4>Motor y componentes</h4>
+        <div class="engine" id="engineGrid"></div>
+        <ul class="issues" id="engineIssues" hidden></ul>
+        <div class="srow"><div class="lbl"><b>Actualización del motor</b><small id="updateText">—</small></div><div class="ctl">
+          <button class="btn sm" id="btnCheckUpdate">Buscar actualizaciones</button>
+          <button class="btn sm primary" id="btnInstallUpdate" hidden>Actualizar ahora</button>
+          <button class="btn sm primary" id="btnRestart" hidden>Reiniciar la app</button></div></div>
+        <div class="srow"><div class="lbl"><b>Registros</b><small>Si algo falla, los registros ayudan a encontrar la causa</small></div><div class="ctl"><button class="btn sm" id="btnOpenLogs">Abrir carpeta de registros</button></div></div>
+      </div>
+
+      <div class="card sgroup">
+        <h4>Atajos</h4>
+        <div class="kbds" id="shortcuts"></div>
+      </div>
+
+      <div class="card sgroup">
+        <h4>Acerca de</h4>
+        <div class="about">
+          <div><b id="aboutName">NactionX Downloader</b> <span id="aboutVersion"></span></div>
+          <div>Para uso personal. Descarga solo contenido que tengas derecho a guardar y respeta los términos de cada plataforma y los derechos de autor.</div>
+          <div>Incluye yt-dlp (Unlicense), FFmpeg (GPL), Deno (MIT) y Python (PSF). <button class="linkbtn" id="btnNotices">Ver licencias de terceros</button></div>
+          <div id="aboutData"></div>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<div class="modal-bg" id="batch" hidden>
+  <div class="card modal" role="dialog" aria-modal="true" aria-labelledby="batchTitle">
+    <h3 id="batchTitle">Añadir en lote</h3>
+    <p>Pega todos los enlaces que quieras (uno por línea o mezclados con texto). Las playlists y los canales se expanden automáticamente. Se usan las opciones actuales.</p>
+    <textarea id="batchText" spellcheck="false" aria-label="Enlaces" placeholder="https://www.youtube.com/watch?v=...&#10;https://youtu.be/...&#10;https://www.youtube.com/playlist?list=..."></textarea>
+    <div class="modal-foot"><span id="batchCount">0 enlaces detectados</span>
+      <button class="btn ghost" id="batchCancel">Cancelar</button>
+      <button class="btn" id="batchTop">Añadir primero</button>
+      <button class="btn primary" id="batchGo">Añadir a la cola</button>
+    </div>
+  </div>
+</div>
+<div class="modal-bg" id="dialog" hidden><div class="card modal" id="dialogBox" role="dialog" aria-modal="true"></div></div>
+<div id="toasts" aria-live="polite"></div>
+<div class="dropzone" id="dropzone" hidden>Suelta los enlaces para añadirlos</div>
+<div class="offline" id="offline" hidden>Sin conexión con el motor de descargas — reintentando…</div>
+<script src="app.js"></script>
+</body>
+</html>

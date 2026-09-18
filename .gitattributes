@@ -1,0 +1,6 @@
+# Los scripts de shell y el flujo de CI deben conservar finales de línea LF:
+# con CRLF, macOS y Linux fallan con "bad interpreter".
+*.sh        text eol=lf
+*.command   text eol=lf
+*.yml       text eol=lf
+*.py        text eol=lf

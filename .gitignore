@@ -1,0 +1,14 @@
+__pycache__/
+*.pyc
+.venv*/
+build/
+dist/
+releases/
+packaging/bin/
+data/
+legacy/data/
+*.part
+*.ytdl
+.pytest_cache/
+*.lnk
+*.ico.bak
