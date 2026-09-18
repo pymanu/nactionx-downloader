@@ -294,6 +294,7 @@ kbd{font:600 11px/1 -apple-system,"Segoe UI",sans-serif;color:var(--muted);borde
 .srow .lbl b{display:block;font-weight:600}
 .srow .lbl small{color:var(--muted);font-size:12.5px;display:block}
 .srow .lbl .note{margin-top:6px;color:var(--warn);font-size:12.5px}
+.srow .lbl .notes{margin-top:8px;color:var(--muted);font-size:12.5px;line-height:1.55;white-space:pre-line;max-width:70ch}
 .srow .ctl{display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:flex-end}
 .srow .folder{max-width:520px}
 .srow input.wide{width:300px}

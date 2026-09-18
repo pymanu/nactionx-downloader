@@ -11,6 +11,20 @@ RULES = [
      'Vídeo con restricción de edad. Usa las cookies de un navegador donde tengas la sesión iniciada (Ajustes → Cuenta).', 'auth'),
     (r"members.only|Join this channel|available to this channel's members",
      'Contenido exclusivo para miembros del canal. Necesitas las cookies de una cuenta con acceso.', 'auth'),
+    (r"Requested content is not available, rate.limit reached or login required|"
+     r"Instagram sent an empty media response",
+     'Instagram no deja ver esto sin haber iniciado sesión. En Ajustes → Cuenta y red, elige Firefox en '
+     '«Cookies del navegador» o carga un archivo cookies.txt exportado de tu navegador.', 'auth'),
+    (r"You need to log in|Requires? login|login is required|Use --cookies-from-browser",
+     'Esta plataforma pide tener la sesión iniciada. Configura las cookies en Ajustes → Cuenta y red.', 'auth'),
+    (r"This post is not available|Post not available|content isn.?t available|"
+     r"page isn.?t available|This account is private|is a private (?:account|user)",
+     'La publicación no está disponible: puede estar borrada o ser de una cuenta privada.', 'unavailable'),
+    (r"Unable to (?:extract|find) (?:webpage )?(?:video )?data|aweme_detail|Video not available.*tiktok",
+     'La plataforma cambió su web y el motor necesita actualizarse (Ajustes → Motor → Actualizar). '
+     'Si ya está al día, prueba con las cookies de tu navegador.', 'update'),
+    (r"photo mode|image post|slideshow|has no video|contains? only (?:images|photos)",
+     'Esta publicación son fotos, no un vídeo, así que no se puede descargar como vídeo.', 'unsupported'),
     (r"Private video|This video is private", 'Es un vídeo privado.', 'unavailable'),
     (r"Premieres in|will begin in|This live event will begin|is_upcoming",
      'El estreno o directo todavía no ha empezado.', 'live'),

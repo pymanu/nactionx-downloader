@@ -27,6 +27,7 @@
       <div class="stat"><span>Errores</span><b class="tnum" id="stErr">0</b></div>
     </div>
     <div class="side-foot">
+      <button class="update-pill" id="appUpdatePill" hidden><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg><span id="appUpdatePillText">Versión nueva de la app</span></button>
       <button class="update-pill" id="updatePill" hidden><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg><span id="updatePillText">Actualización del motor</span></button>
       <div class="conn" id="conn"><i class="dot"></i><span id="connText">Conectando…</span></div>
       <small id="verText"></small>
@@ -40,7 +41,7 @@
         <div class="omnibox">
           <svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
           <label class="sr" for="q">Enlace o búsqueda</label>
-          <input id="q" autocomplete="off" spellcheck="false" placeholder="Pega un enlace de vídeo, playlist o canal… o escribe para buscar en YouTube">
+          <input id="q" autocomplete="off" spellcheck="false" placeholder="Pega un enlace de YouTube, Instagram, TikTok… o escribe para buscar en YouTube">
           <kbd id="pasteKbd">Ctrl V</kbd>
           <button class="btn primary" id="btnAnalyze">Analizar</button>
         </div>
@@ -94,6 +95,14 @@
           <input type="text" id="tplInput" spellcheck="false" aria-label="Plantilla personalizada" placeholder="%(title)s.%(ext)s">
           <button class="btn sm" id="tplSave" hidden>Guardar plantilla</button>
         </div>
+      </div>
+
+      <div class="banner" id="appUpdateBanner" hidden>
+        <svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        <div class="t" id="appUpdateText"></div>
+        <button class="btn sm" data-goto="settings">Novedades</button>
+        <button class="btn sm primary" id="btnAppUpdateGet">Descargar</button>
+        <button class="ibtn" id="btnAppUpdateHide" title="Ocultar hasta la próxima versión" aria-label="Ocultar el aviso hasta la próxima versión"><svg class="i" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
       </div>
 
       <div class="banner warn" id="issuesBanner" hidden>
@@ -165,7 +174,7 @@
 
       <div class="card sgroup">
         <h4>Cuenta y red</h4>
-        <div class="srow"><div class="lbl"><b>Cookies del navegador</b><small>Para vídeos con restricción de edad, privados o de miembros</small><div class="note" id="cookiesNote" hidden></div></div><div class="ctl"><select data-key="cookies_browser" id="oCookiesBrowser" aria-label="Navegador para cookies">
+        <div class="srow"><div class="lbl"><b>Cookies del navegador</b><small>Para Instagram y para vídeos con restricción de edad, privados o de miembros</small><div class="note" id="cookiesNote" hidden></div></div><div class="ctl"><select data-key="cookies_browser" id="oCookiesBrowser" aria-label="Navegador para cookies">
           <option value="">No usar</option><option value="firefox">Firefox (recomendado)</option><option value="chrome">Chrome</option><option value="edge">Edge</option><option value="brave">Brave</option><option value="opera">Opera</option><option value="vivaldi">Vivaldi</option><option value="safari">Safari</option></select></div></div>
         <div class="srow"><div class="lbl"><b>Archivo de cookies</b><small>Un archivo cookies.txt exportado con una extensión del navegador. Tiene prioridad sobre la opción anterior</small></div><div class="ctl"><span class="pathbox" id="cookiesFilePath">Ninguno</span><button class="btn sm" id="btnCookiesFile">Elegir archivo</button><button class="btn sm ghost" id="btnCookiesClear" hidden>Quitar</button></div></div>
         <div class="srow"><div class="lbl"><b>Proxy</b><small>Opcional. Ejemplo: http://127.0.0.1:8080 o socks5://host:1080</small></div><div class="ctl"><input type="text" class="wide" id="proxyInput" spellcheck="false" placeholder="Sin proxy" aria-label="Proxy"><button class="btn sm" id="btnProxySave">Guardar</button></div></div>
@@ -178,6 +187,14 @@
         <div class="srow"><div class="lbl"><b>Notificaciones</b><small>Un aviso del sistema cuando termina la cola (no uno por archivo)</small></div><div class="ctl"><label class="switch"><input type="checkbox" data-key="notify" aria-label="Notificaciones"><span></span></label></div></div>
         <div class="srow" id="shortcutsRow" hidden><div class="lbl"><b>Accesos directos</b><small>Crea accesos a NactionX Downloader en el escritorio y en el menú Inicio</small></div><div class="ctl"><button class="btn sm" id="btnShortcuts">Crear accesos directos</button></div></div>
         <div class="srow"><div class="lbl"><b>Buscar actualizaciones del motor al abrir</b><small>YouTube cambia a menudo: tener el motor al día evita errores</small></div><div class="ctl"><label class="switch"><input type="checkbox" data-key="check_updates" aria-label="Buscar actualizaciones al abrir"><span></span></label></div></div>
+        <div class="srow"><div class="lbl"><b>Avisar de versiones nuevas de la app</b><small>Comprueba en GitHub si hay una versión más reciente. No instala nada por su cuenta</small></div><div class="ctl"><label class="switch"><input type="checkbox" data-key="check_app_updates" aria-label="Avisar de versiones nuevas de la app"><span></span></label></div></div>
+      </div>
+
+      <div class="card sgroup">
+        <h4>Versión de la app</h4>
+        <div class="srow"><div class="lbl"><b id="appUpdateTitle">—</b><small id="appUpdateDetail"></small><div class="notes" id="appUpdateNotes" hidden></div></div><div class="ctl">
+          <button class="btn sm" id="btnAppUpdateCheck">Buscar ahora</button>
+          <button class="btn sm primary" id="btnAppUpdateDownload" hidden>Descargar</button></div></div>
       </div>
 
       <div class="card sgroup">
@@ -213,7 +230,7 @@
   <div class="card modal" role="dialog" aria-modal="true" aria-labelledby="batchTitle">
     <h3 id="batchTitle">Añadir en lote</h3>
     <p>Pega todos los enlaces que quieras (uno por línea o mezclados con texto). Las playlists y los canales se expanden automáticamente. Se usan las opciones actuales.</p>
-    <textarea id="batchText" spellcheck="false" aria-label="Enlaces" placeholder="https://www.youtube.com/watch?v=...&#10;https://youtu.be/...&#10;https://www.youtube.com/playlist?list=..."></textarea>
+    <textarea id="batchText" spellcheck="false" aria-label="Enlaces" placeholder="https://www.youtube.com/watch?v=...&#10;https://www.instagram.com/reel/...&#10;https://www.tiktok.com/@usuario/video/...&#10;https://www.youtube.com/playlist?list=..."></textarea>
     <div class="modal-foot"><span id="batchCount">0 enlaces detectados</span>
       <button class="btn ghost" id="batchCancel">Cancelar</button>
       <button class="btn" id="batchTop">Añadir primero</button>

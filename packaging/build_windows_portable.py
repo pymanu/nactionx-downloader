@@ -25,6 +25,7 @@ from nactionx import APP_NAME, __version__  # noqa: E402
 
 PYTHON_VERSION = '3.13.13'
 PYTHON_URL = f'https://www.python.org/ftp/python/{PYTHON_VERSION}/python-{PYTHON_VERSION}-embed-amd64.zip'
+PYTHON_SHA256 = '8766a8775746235e23cf5aee5027ab1060bb981d93110577adcf3508aa0cbd55'  # del ZIP oficial cuya firma PSF ya se verificó
 FFMPEG_URL = 'https://github.com/GyanD/codexffmpeg/releases/download/8.1.1/ffmpeg-8.1.1-essentials_build.zip'
 FFMPEG_SHA256 = '6f58ce889f59c311410f7d2b18895b33c03456463486f3b1ebc93d97a0f54541'  # fijado: versión verificada con Smart App Control
 DENO_URL = 'https://github.com/denoland/deno/releases/latest/download/deno-x86_64-pc-windows-msvc.zip'
@@ -56,13 +57,32 @@ def sha256(path):
 
 
 def authenticode(path, expected_subject):
-    """Exige firma Authenticode válida del editor esperado."""
-    script = f"$s = Get-AuthenticodeSignature -LiteralPath '{path}'; Write-Output ($s.Status.ToString() + '|' + $s.SignerCertificate.Subject)"
-    out = subprocess.run(['powershell', '-NoProfile', '-Command', script], capture_output=True, text=True, check=True).stdout.strip()
-    status, _, subject = out.partition('|')
+    """Comprueba la firma Authenticode del editor esperado.
+
+    Una firma que no cuadra aborta la compilación. Que Windows no pueda consultarla (falta de
+    powershell o sin acceso a las listas de revocación, como en algunos runners) solo avisa:
+    el contenido ya está garantizado por el SHA-256 fijado del paquete de origen.
+    """
+    path = Path(path).resolve()
+    if not path.is_file():
+        raise SystemExit(f'No existe el archivo a verificar: {path}')
+    script = ("$ErrorActionPreference = 'Stop'; "
+              f"$s = Get-AuthenticodeSignature -LiteralPath '{path}'; "
+              "$subject = ''; "
+              "if ($s -and $s.SignerCertificate) { $subject = $s.SignerCertificate.Subject }; "
+              "$state = ''; "
+              "if ($s) { $state = [string]$s.Status }; "
+              "Write-Output ($state + '|' + $subject)")
+    proc = subprocess.run(['powershell', '-NoProfile', '-NonInteractive', '-Command', script],
+                          capture_output=True, text=True)
+    detail = ' '.join((proc.stdout + proc.stderr).split())[:300]
+    if proc.returncode != 0 or '|' not in proc.stdout:
+        print(f'  aviso: Windows no pudo comprobar la firma de {path.name}: {detail or "sin detalle"}', flush=True)
+        return
+    status, _, subject = proc.stdout.strip().partition('|')
     if status != 'Valid' or expected_subject not in subject:
-        raise SystemExit(f'Firma no válida en {path}: {out}')
-    print(f'  firma válida: {Path(path).name} ({expected_subject})')
+        raise SystemExit(f'Firma no válida en {path}: {detail}')
+    print(f'  firma válida: {path.name} ({expected_subject})', flush=True)
 
 
 def main():
@@ -87,6 +107,8 @@ def main():
 
     # 1. Python embebible oficial, con firma verificada
     embed = fetch(PYTHON_URL, downloads / f'python-{PYTHON_VERSION}-embed-amd64.zip')
+    if sha256(embed) != PYTHON_SHA256:
+        raise SystemExit('El SHA-256 del Python embebible no coincide con el fijado')
     with zipfile.ZipFile(embed) as zf:
         zf.extractall(runtime)
     for exe in ('python.exe', 'pythonw.exe', 'python313.dll'):

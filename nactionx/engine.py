@@ -9,7 +9,7 @@ import yt_dlp
 from yt_dlp.postprocessor import PostProcessor, get_postprocessor
 from yt_dlp.utils import parse_bytes, parse_duration
 
-from . import errors, formats, log, names, platform_utils
+from . import errors, formats, log, names, platform_utils, sites
 from .errors import FriendlyError
 
 logger = log.get('engine')
@@ -37,16 +37,8 @@ def yt_thumb(video_id):
     return f'https://i.ytimg.com/vi/{video_id}/mqdefault.jpg' if video_id else ''
 
 
-def normalize_url(url):
-    url = url.strip()
-    if re.match(r'^https?://(www\.|m\.)?youtube\.com/(@[^/?#]+|channel/[^/?#]+|c/[^/?#]+|user/[^/?#]+)/?$', url):
-        url = url.rstrip('/') + '/videos'
-    return url
-
-
-def looks_like_collection(url):
-    return bool(re.search(r'youtube\.com/(playlist\?|@|channel/|c/|user/)', url)) or (
-        'list=' in url and 'v=' not in url and 'youtu.be/' not in url)
+normalize_url = sites.normalize_url
+looks_like_collection = sites.looks_like_collection
 
 
 class YtdlpLogger:
@@ -107,8 +99,15 @@ def entry_item(entry):
     url = entry.get('url') or entry.get('webpage_url') or ''
     extractor = (entry.get('ie_key') or entry.get('extractor_key') or entry.get('extractor') or '').lower()
     is_youtube = extractor.startswith('youtube') or 'youtube.com' in url or 'youtu.be' in url
-    if not url.startswith('http') and video_id and is_youtube:
-        url = f'https://www.youtube.com/watch?v={video_id}'
+    if not url.startswith('http') and video_id:
+        # En las listas planas algunas plataformas devuelven solo el identificador.
+        if is_youtube:
+            url = f'https://www.youtube.com/watch?v={video_id}'
+        elif extractor.startswith('tiktok'):
+            user = entry.get('uploader') or entry.get('channel') or ''
+            url = f'https://www.tiktok.com/@{user.lstrip("@")}/video/{video_id}' if user else url
+        elif extractor.startswith('instagram'):
+            url = f'https://www.instagram.com/p/{video_id}/'
     thumb = ''
     if is_youtube and video_id:
         thumb = yt_thumb(video_id)
@@ -125,6 +124,26 @@ def entry_item(entry):
     }
 
 
+COLLECTION_HELP = {
+    sites.INSTAGRAM: 'Instagram no deja listar un perfil entero sin sesión iniciada. Pega el enlace de la '
+                     'publicación concreta, o configura las cookies en Ajustes → Cuenta y red.',
+    sites.TIKTOK: 'TikTok no deja listar un perfil entero desde fuera de su aplicación. Abre el vídeo que '
+                  'quieras en TikTok y pega su enlace: los vídeos sueltos sí se descargan.',
+}
+
+
+def extract(ydl, url, collection=False):
+    """Extrae la información del enlace, explicando el caso en el que más gente se atasca: pegar el
+    perfil de Instagram o TikTok en lugar de la publicación."""
+    try:
+        return ydl.extract_info(url, download=False)
+    except Exception as e:
+        help_text = COLLECTION_HELP.get(sites.platform_of(url)) if collection else None
+        if help_text:
+            raise FriendlyError(help_text, 'unsupported', errors.clean(e)) from e
+        raise
+
+
 def analyze(query, want_playlist, settings, components):
     query = query.strip()
     if not query:
@@ -138,7 +157,9 @@ def analyze(query, want_playlist, settings, components):
                 'entries': [entry_item(e) for e in info.get('entries') or []]}
 
     url = normalize_url(query)
-    if want_playlist or looks_like_collection(url):
+    opts.update(sites.request_options(url))
+    collection = bool(want_playlist or looks_like_collection(url))
+    if collection:
         if want_playlist:
             match = re.search(r'[?&]list=([\w-]+)', url)
             if match:
@@ -147,7 +168,7 @@ def analyze(query, want_playlist, settings, components):
     else:
         opts['noplaylist'] = True
     with yt_dlp.YoutubeDL(opts) as ydl:
-        info = ydl.extract_info(url, download=False)
+        info = extract(ydl, url, collection)
 
     if info.get('_type') == 'playlist' or info.get('entries') is not None:
         entries = [entry_item(e) for e in (info.get('entries') or []) if e]
@@ -168,14 +189,16 @@ def analyze(query, want_playlist, settings, components):
         'subtitles': sorted((info.get('subtitles') or {}).keys())[:40],
         'has_playlist': 'list=' in query and ('youtube' in query or 'youtu.be' in query),
         'extractor': info.get('extractor_key'),
+        'platform': sites.platform_of(url), 'platform_label': sites.label_of(url),
     }
 
 
 def expand_collection(url, settings, components):
     opts = base_opts(settings, components)
+    opts.update(sites.request_options(url))
     opts['extract_flat'] = 'in_playlist'
     with yt_dlp.YoutubeDL(opts) as ydl:
-        info = ydl.extract_info(normalize_url(url), download=False)
+        info = extract(ydl, normalize_url(url), collection=True)
     return info.get('title') or 'Playlist', [entry_item(e) for e in (info.get('entries') or []) if e]
 
 
@@ -308,6 +331,7 @@ class Download:
             'concurrent_fragment_downloads': 4, 'windowsfilenames': True, 'trim_file_name': 150,
             'overwrites': False, 'progress_hooks': [self.progress_hook], 'postprocessor_hooks': [self.pp_hook],
         })
+        opts.update(sites.request_options(job['url']))
         if self.settings.get('rate_limit'):
             opts['ratelimit'] = parse_bytes(self.settings['rate_limit'])
 
@@ -328,7 +352,8 @@ class Download:
                 pps.append({'key': 'FFmpegExtractAudio', 'preferredcodec': audio_format,
                             'preferredquality': str(options.get('audio_bitrate') or '320') if lossy else '0'})
         else:
-            opts.update(formats.video_selection(options.get('quality'), container, options.get('codec')))
+            opts.update(formats.video_selection(options.get('quality'), container, options.get('codec'),
+                                                progressive=sites.progressive(job['url'])))
         if trimming:
             pps.append({'key': 'Trim', 'start': start, 'end': end, 'bitrate': options.get('audio_bitrate') or '320'})
         if mode == 'video' and options.get('subtitles') and not trimming:

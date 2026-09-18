@@ -53,6 +53,7 @@ def defaults():
         'clipboard': True,
         'notify': True,
         'check_updates': True,
+        'check_app_updates': True,
     }
 
 
@@ -160,6 +161,7 @@ VALIDATORS = {
     'clipboard': _bool,
     'notify': _bool,
     'check_updates': _bool,
+    'check_app_updates': _bool,
 }
 
 

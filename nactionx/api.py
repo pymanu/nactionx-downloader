@@ -9,7 +9,7 @@ import threading
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs, urlparse
 
-from . import APP_NAME, __version__, errors, log, paths, platform_utils
+from . import APP_NAME, __version__, errors, log, paths, platform_utils, updates
 from .settings import SettingsError
 
 logger = log.get('api')
@@ -24,6 +24,7 @@ class ApiServer:
         self.manager, self.settings, self.components = manager, settings, components
         self.token = secrets.token_urlsafe(24)
         self.desktop = desktop  # objeto con pick_folder/pick_file/focus/restart/quit cuando hay ventana nativa
+        self.app_updates = updates.AppUpdates()
         server = self
 
         class Handler(RequestHandler):
@@ -46,6 +47,8 @@ class ApiServer:
         self.thread = threading.Thread(target=self.httpd.serve_forever, daemon=True, name='api')
         self.thread.start()
         logger.info('API en %s', self.url)
+        if self.settings.get('check_app_updates'):
+            self.app_updates.check_in_background()
 
     def stop(self):
         try:
@@ -160,6 +163,7 @@ class RequestHandler(BaseHTTPRequestHandler):
                 'settings': app.settings.snapshot(),
                 'components': app.components.status(),
                 'folder': platform_utils.folder_info(app.settings.get('folder')),
+                'app_update': app.app_updates.status(),
             })
         if path == '/api/state':
             srev = int(q['srev']) if q.get('srev', '').isdigit() else None
@@ -176,6 +180,8 @@ class RequestHandler(BaseHTTPRequestHandler):
             return self.json(platform_utils.folder_info(q.get('path') or app.settings.get('folder')))
         if path == '/api/components':
             return self.json(app.components.status())
+        if path == '/api/app/update':
+            return self.json(app.app_updates.status())
         return self.fail('Ruta desconocida', 404)
 
     # -- POST
@@ -219,6 +225,10 @@ class RequestHandler(BaseHTTPRequestHandler):
         if path == '/api/components/update':
             threading.Thread(target=app.components.install_update, daemon=True, name='update').start()
             return self.json({'ok': True})
+        if path == '/api/app/update-check':
+            return self.json(app.app_updates.check())
+        if path == '/api/app/update-download':
+            return self.json(app.app_updates.open_download())
         if path == '/api/app/restart':
             if app.desktop:
                 app.desktop.restart()

@@ -11,9 +11,13 @@ def fix_combo(container, codec):
     return codec
 
 
-def video_selection(quality, container, codec):
+def video_selection(quality, container, codec, progressive=False):
     """Resolución y fps siempre por delante; el códec y la extensión solo desempatan.
-    (Con la extensión delante, un 1080p MP4 le ganaba a un 2160p WEBM.)"""
+    (Con la extensión delante, un 1080p MP4 le ganaba a un 2160p WEBM.)
+
+    `progressive`: la plataforma sirve el vídeo y el audio ya unidos (Instagram, TikTok). Ahí se pide
+    primero el archivo completo, porque no existen pistas separadas que combinar.
+    """
     codec = fix_combo(container, codec)
     quality = str(quality or 'best')
     sort = [f'res:{quality}' if quality.isdigit() else 'res', 'fps']
@@ -23,6 +27,8 @@ def video_selection(quality, container, codec):
         sort.append('ext:mp4:m4a')
     elif container == 'webm':
         sort.append('ext:webm:webm')
+    if progressive:
+        return {'format': 'b/bv*+ba', 'format_sort': sort, 'merge_output_format': container}
     fmt = 'bv*+ba/b'
     if container == 'webm':
         fmt = 'bv*[vcodec~="^(vp0?9|av0?1)"]+ba[acodec~="^(opus|vorbis)"]/bv*+ba/b'

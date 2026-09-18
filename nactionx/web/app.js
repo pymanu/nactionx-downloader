@@ -30,7 +30,7 @@ const I = {
 const ACTIVE = ['starting', 'downloading', 'processing'];
 const STATUS = {queued: 'En cola', starting: 'Iniciando', downloading: 'Descargando', processing: 'Procesando', done: 'Completado', error: 'Error', paused: 'Pausado', canceled: 'Cancelado'};
 const QUALITIES = [['best', 'Máxima'], ['4320', '4320p (8K)'], ['2160', '2160p (4K)'], ['1440', '1440p (2K)'], ['1080', '1080p'], ['720', '720p'], ['480', '480p'], ['360', '360p'], ['240', '240p'], ['144', '144p']];
-const SITE_RE = /(youtube\.com|youtu\.be|vimeo\.com|tiktok\.com|instagram\.com|twitter\.com|x\.com|twitch\.tv|soundcloud\.com|facebook\.com|fb\.watch|dailymotion\.com|reddit\.com|bilibili\.com|kick\.com|bandcamp\.com)/i;
+const SITE_RE = /(youtube\.com|youtu\.be|vimeo\.com|tiktok\.com|instagram\.com|instagr\.am|ig\.me|twitter\.com|x\.com|twitch\.tv|soundcloud\.com|facebook\.com|fb\.watch|dailymotion\.com|reddit\.com|bilibili\.com|kick\.com|bandcamp\.com|threads\.net|vk\.com)/i;
 const URL_RE = /https?:\/\/[^\s<>"']+/g;
 const BAD_CHARS = /[<>:"/\\|?*\x00-\x1f]/g;
 const BAD_TEST = /[<>:"/\\|?*\x00-\x1f]/;
@@ -40,7 +40,7 @@ const MOD = IS_MAC ? '⌘' : 'Ctrl';
 const S = {
   app: {}, settings: {}, components: {}, folder: {}, jobs: [], byId: new Map(), paused: false, srev: null, prev: null,
   filter: 'all', view: 'downloads', prevStatus: {}, dragging: null, preview: null, lastSearch: null, sel: new Set(),
-  fails: 0, history: [], token: 0, pending: {}, clip: '',
+  fails: 0, history: [], token: 0, pending: {}, clip: '', appUpdate: {},
 };
 const nodes = new Map();
 const $ = s => document.querySelector(s);
@@ -174,9 +174,12 @@ function setConn(ok) {
 async function bootstrap() {
   const b = await api('/api/bootstrap');
   S.app = b.app; S.settings = b.settings; S.components = b.components; S.folder = b.folder;
-  buildControls(); renderFolder(); renderEngine(); renderIssues(); renderAbout();
+  S.appUpdate = b.app_update || {};
+  buildControls(); renderFolder(); renderEngine(); renderIssues(); renderAbout(); renderAppUpdate();
   $('#verText').textContent = `v${b.app.version} · motor ${b.components.ytdlp}`;
   if (S.settings.check_updates) setTimeout(() => checkUpdates(true), 4000);
+  // La comprobación del arranque la lanza el servidor: se recoge su resultado un poco después.
+  if (S.settings.check_app_updates) setTimeout(pollAppUpdate, 6000);
 }
 
 async function poll() {
@@ -748,6 +751,52 @@ function renderUpdate() {
   $('#updatePill').hidden = !['available', 'restart'].includes(u.state);
   $('#updatePillText').textContent = u.state === 'restart' ? 'Reinicia para usar el motor nuevo' : 'Actualización del motor disponible';
 }
+function renderAppUpdate() {
+  const u = S.appUpdate || {};
+  const available = u.state === 'available' && !!u.version;
+  const dismissed = ls.get('hideAppUpdate', '') === u.version;
+  $('#appUpdateBanner').hidden = !available || dismissed;
+  $('#appUpdatePill').hidden = !available;
+  if (available) {
+    const weight = u.asset && u.asset.size ? ` · ${bytes(u.asset.size)}` : '';
+    $('#appUpdateText').innerHTML = `<b>NactionX Downloader ${esc(u.version)}</b> ya está disponible <span>— tienes la ${esc(u.current || '')}${weight}</span>`;
+    $('#appUpdatePillText').textContent = `Versión ${u.version} disponible`;
+  }
+  $('#appUpdateTitle').textContent = available ? `Versión ${u.version} disponible` : `Versión ${u.current || S.app.version || ''}`;
+  $('#appUpdateDetail').textContent = u.message || '';
+  const notes = $('#appUpdateNotes');
+  notes.hidden = !(available && u.notes);
+  notes.textContent = available ? (u.notes || '') : '';
+  $('#btnAppUpdateDownload').hidden = !available;
+  $('#btnAppUpdateCheck').disabled = u.state === 'checking';
+  $('#btnAppUpdateCheck').textContent = u.state === 'checking' ? 'Buscando…' : 'Buscar ahora';
+}
+async function checkAppUpdate(silent) {
+  S.appUpdate = {...S.appUpdate, state: 'checking', message: 'Buscando una versión nueva…'};
+  renderAppUpdate();
+  try {
+    S.appUpdate = await api('/api/app/update-check', {});
+    if (!silent) toast(S.appUpdate.message, S.appUpdate.state === 'error' ? 'err' : S.appUpdate.state === 'available' ? 'ok' : 'info');
+  } catch (e) {
+    S.appUpdate = {...S.appUpdate, state: 'error', message: e.message};
+    if (!silent) toast(e.message, 'err');
+  }
+  renderAppUpdate();
+}
+async function pollAppUpdate(tries = 0) {
+  try {
+    S.appUpdate = await api('/api/app/update');
+    renderAppUpdate();
+    if (S.appUpdate.state === 'checking' && tries < 10) return setTimeout(() => pollAppUpdate(tries + 1), 3000);
+    if (!$('#appUpdateBanner').hidden) toast(S.appUpdate.message, 'ok');
+  } catch { /* sin conexión: se volverá a intentar al abrir la app */ }
+}
+async function downloadAppUpdate() {
+  try {
+    await api('/api/app/update-download', {});
+    toast('Se ha abierto la descarga en tu navegador', 'ok');
+  } catch (e) { toast(e.message, 'err'); }
+}
 function renderIssues() {
   const issues = (S.components || {}).issues || [];
   $('#issuesBanner').hidden = !issues.length;
@@ -812,6 +861,11 @@ document.addEventListener('click', e => {
   if (e.target.closest('[data-openfolder]')) api('/api/open', {path: S.settings.folder, mode: 'folder'}).catch(err => toast(err.message, 'err'));
 });
 $('#updatePill').addEventListener('click', () => setView('settings'));
+$('#appUpdatePill').addEventListener('click', () => setView('settings'));
+$('#btnAppUpdateGet').addEventListener('click', downloadAppUpdate);
+$('#btnAppUpdateDownload').addEventListener('click', downloadAppUpdate);
+$('#btnAppUpdateCheck').addEventListener('click', () => checkAppUpdate(false));
+$('#btnAppUpdateHide').addEventListener('click', () => { ls.set('hideAppUpdate', S.appUpdate.version || ''); renderAppUpdate(); });
 $('#btnAnalyze').addEventListener('click', () => { S.lastSearch = null; analyze(); });
 $('#q').addEventListener('keydown', e => { if (e.key === 'Enter') { S.lastSearch = null; analyze(); } });
 $('#q').addEventListener('input', () => { const v = $('#q').value.trim(); $('#btnAnalyze').textContent = !v || isUrl(v) ? 'Analizar' : 'Buscar'; });

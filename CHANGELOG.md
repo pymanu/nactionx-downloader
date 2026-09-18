@@ -1,5 +1,19 @@
 # Cambios
 
+## 1.1.0 — Instagram, TikTok y aviso de versión
+
+### Novedades
+- **Instagram y TikTok**: pega el enlace de un reel, un post o un vídeo y se descarga como cualquier otro, con las mismas opciones (calidad, audio, recorte, nombre propio).
+- **Aviso de versión nueva**: la app comprueba si hay una versión más reciente y lo dice, en Windows y en macOS. El botón «Descargar» abre directamente el instalador que corresponde a tu sistema. Se puede desactivar en *Ajustes → Comportamiento*.
+
+### Correcciones
+- TikTok no se podía ni analizar: devolvía una página de verificación en lugar del vídeo. Ahora se pide con una cabecera de navegador normal.
+- Instagram y TikTok sirven el vídeo y el audio en un único archivo; se les pide así en vez de buscar pistas separadas que no existen.
+- Los enlaces compartidos desde las apps de Instagram y TikTok llevan identificadores de sesión que colaban duplicados en la cola: ahora se limpian.
+- Pegar el perfil en lugar de la publicación explica qué hacer, en vez de mostrar «please report this issue on GitHub».
+- Instagram sin sesión iniciada indica cómo configurar las cookies.
+- La compilación de Windows en GitHub Actions fallaba al comprobar la firma del Python oficial; además el paquete de origen se verifica ahora también por SHA-256.
+
 ## 1.0.0 — primera versión de escritorio
 
 Nace **NactionX Downloader** a partir del prototipo «Descargador». El detalle está en `PLAN_DE_MEJORA.md`.
