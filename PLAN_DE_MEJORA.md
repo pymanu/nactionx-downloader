@@ -140,7 +140,8 @@ Todo lo marcado como v1.0 en las tablas. Los críticos van primero, luego los im
 |---|---|---|
 | Windows 10/11 x64 | `releases/NactionX-Downloader-1.0.0-Windows-x64-Setup.exe` (99 MB, instalación por usuario sin administrador) | ✅ Compilado y probado: instalar, arrancar y desinstalar |
 | Windows 10/11 x64 | `releases/NactionX-Downloader-1.0.0-Windows-x64-Portable.zip` (138 MB) | ✅ Compilado y probado de extremo a extremo |
-| macOS Apple Silicon e Intel | `.dmg` generados por `.github/workflows/build.yml` | ⬜ Preparado; necesita un repositorio en GitHub para compilarse en máquinas Mac |
+| macOS Apple Silicon | `releases/NactionX-Downloader-1.0.0-macOS-arm64.dmg` (126 MB) | ✅ Compilado en un Mac real y con la prueba automática superada |
+| macOS Intel | `releases/NactionX-Downloader-1.0.0-macOS-x64.dmg` (146 MB) | ✅ Compilado en un Mac real y con la prueba automática superada |
 
 ### Pruebas del ejecutable de Windows
 - Arranque en 1,7 s con FFmpeg, FFprobe, Deno, yt-dlp y yt-dlp-ejs incluidos y sin avisos.
@@ -150,10 +151,36 @@ Todo lo marcado como v1.0 en las tablas. Los críticos van primero, luego los im
 
 ### Limitaciones conocidas
 - **Firma de código:** sin certificado, Windows SmartScreen avisará en otros PCs al ejecutar el instalador, y macOS pedirá «Abrir igualmente». Firmar (certificado de Windows o Apple Developer, 99 USD/año) elimina los avisos.
-- **macOS no se ha probado en un Mac real.** El código es multiplataforma y está revisado, pero la verificación final llegará con el build de CI.
+- **macOS se ha compilado y probado automáticamente en Macs reales** (Apple Silicon e Intel, en GitHub Actions): arranque, descarga real, recorte exacto, instancia única y cierre ordenado. Falta la prueba a mano sobre hardware propio.
 - **Recortar descarga el vídeo entero y luego corta.** Con calidad máxima puede tardar en vídeos largos (a cambio, el corte es exacto y se puede cancelar).
 
 ---
 
 ## 5. Hoja de ruta posterior (v1.1+)
 Selector de pestañas de canal, editar opciones en cola, límite de velocidad global, tema claro, omitir ya descargados, inglés, grabación de directos, icono en la bandeja del sistema, programador de descargas, extensión de navegador «Enviar a NactionX», descargas en procesos aislados y autoactualización completa de la app.
+
+---
+
+## 6. Versión 1.1: Instagram, TikTok y aviso de versión
+
+### Cómo se verificó
+Además de los tests, se analizó y descargó contenido público real de las dos plataformas con el motor de la app, y se repitió el flujo completo desde la interfaz.
+
+### Hallazgos y correcciones
+
+| # | Problema encontrado | Prueba | Corrección |
+|---|---|---|---|
+| F01 | **Ningún enlace de TikTok se podía ni analizar.** Con la cabecera por defecto de yt-dlp, TikTok devuelve una página de verificación, no el vídeo. | Vídeos públicos reales: falla con «Unexpected response from webpage request»; con cabecera de navegador, 12 y 8 formatos correctos. | `sites.request_options()` pide TikTok con una cabecera de navegador. |
+| F02 | Instagram y TikTok sirven vídeo y audio en un único archivo; pedir `bv*+ba` gasta un intento en pistas que no existen. | 11 de 12 formatos de TikTok traen vídeo y audio juntos. | `formats.video_selection(progressive=True)` pide `b/bv*+ba`. |
+| F03 | Los enlaces compartidos desde las apps llevan `igsh`, `is_from_webapp`, `sender_device`…: el mismo vídeo entraba dos veces en la cola. | Dos enlaces del mismo reel con distinto `igsh`. | `sites.strip_tracking()` los limpia antes de encolar. |
+| F04 | Pegar un **perfil** en lugar de una publicación mostraba «please report this issue on GitHub». | Perfiles reales de Instagram y TikTok. | `engine.extract()` explica que hay que pegar la publicación concreta, y en Instagram, cómo poner las cookies. |
+| F05 | Instagram sin sesión daba un error críptico. | Reel inaccesible sin sesión. | Regla de error con la ruta exacta: Ajustes → Cuenta y red. |
+| F06 | La compilación de Windows en GitHub Actions fallaba al comprobar la firma Authenticode del Python oficial. | Ejecución 35397497185. | La comprobación distingue «firma incorrecta» (aborta) de «Windows no puede consultarla» (avisa), y el paquete se verifica además por SHA-256 fijado. |
+
+### Aviso de versión nueva
+El código sigue en un repositorio privado; los instaladores se publican en uno público, `pymanu/nactionx-downloader-releases`. Así la app comprueba si hay versión nueva sin llevar ninguna credencial dentro, que es lo que exigiría consultar las publicaciones de un repositorio privado. La app avisa y abre la descarga que corresponde a cada sistema; no instala nada por su cuenta.
+
+### Límites de estas plataformas
+- **Perfiles completos: no.** Ni Instagram ni TikTok permiten listar un perfil desde fuera de sus apps. Se descargan publicaciones sueltas.
+- **Instagram y la sesión.** Las cuentas privadas, las historias y parte del contenido exigen cookies. En Windows, Chrome y Edge cifran las suyas: hay que usar Firefox o un `cookies.txt`.
+- **TikTok y el códec.** TikTok solo publica H.264 en su calidad menor; la mayor es siempre H.265, que Windows no reproduce de serie en todos los equipos. Como la resolución manda sobre el códec (corrección A01), con «Máxima» sale H.265 aunque el códec esté puesto en H.264: para forzar H.264 hay que bajar la calidad (en el ejemplo probado, 576p). El selector de códec solo desempata entre formatos de la misma resolución.
