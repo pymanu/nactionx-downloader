@@ -614,6 +614,10 @@ function renderPreview() {
         <div class="namefield" id="pvNameBox">${I.pen}<input id="pvName" spellcheck="false" autocomplete="off" aria-label="Nombre del archivo"><span class="ext" id="pvExt"></span><button class="ibtn" data-pv="resetname" id="pvReset" title="Volver al título original" aria-label="Volver al título original" hidden>${I.undo}</button></div>
         <div class="lbl-s">Elige calidad</div>
         <div class="qchips" id="qchips"></div>
+        ${(d.audio_tracks || []).length > 1 ? `<div class="lbl-s">Pista de audio</div>
+        <div class="pv-row"><label class="field"><span>Idioma</span><select id="pvTrack" aria-label="Pista de audio">
+          ${d.audio_tracks.map(t => `<option value="${esc(t.value)}">${esc(t.label)}${t.original ? ' · original' : ''}</option>`).join('')}
+        </select></label></div>` : ''}
         <div class="pv-row">
           <div class="trim">${I.cut}Recortar <input id="tStart" placeholder="inicio" title="Ejemplo: 1:30" aria-label="Inicio del recorte"> – <input id="tEnd" placeholder="${d.duration ? dur(d.duration) : 'fin'}" title="Ejemplo: 2:45" aria-label="Fin del recorte"></div>
           ${d.has_playlist ? `<button class="linkbtn" data-pv="playlist">${I.list}Cargar la playlist completa</button>` : ''}
@@ -943,7 +947,10 @@ $('#preview').addEventListener('click', async e => {
   if (act === 'add' || act === 'top') {
     const name = $('#pvName').value.trim();
     const filename = name && name !== d.title.replace(BAD_CHARS, '') ? name : '';
-    const r = await addItems([{url: d.url, title: d.title, thumbnail: d.thumbnail, uploader: d.uploader, duration: d.duration, filename}], act === 'top', '', {start: $('#tStart').value.trim(), end: $('#tEnd').value.trim()});
+    const track = $('#pvTrack');
+    // Solo se manda si el usuario ha cambiado la pista: la primera de la lista es la original.
+    const audio_track = track && track.selectedIndex > 0 ? track.value : '';
+    const r = await addItems([{url: d.url, title: d.title, thumbnail: d.thumbnail, uploader: d.uploader, duration: d.duration, filename}], act === 'top', '', {start: $('#tStart').value.trim(), end: $('#tEnd').value.trim(), audio_track});
     if (r && r.added) { if (S.lastSearch) { S.preview = S.lastSearch; renderPreview(); } else { closePreview(); $('#q').value = ''; } }
   }
   if (act === 'addsel' || act === 'topsel') {

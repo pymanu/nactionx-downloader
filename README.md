@@ -6,6 +6,7 @@ Gestor de descargas de vídeo y audio para Windows y macOS. Funciona con YouTube
 - Vista previa con calidades y tamaños estimados, playlists, canales y búsqueda.
 - Vídeo en MP4/MKV/WEBM con el códec que elijas, o audio en MP3/M4A/OPUS/FLAC/WAV.
 - Nombre de archivo propio, recorte de fragmentos, subtítulos, carátula, metadatos y SponsorBlock.
+- Elección de pista de audio en los vídeos con varios idiomas.
 - Motor actualizable desde la propia app, y aviso cuando hay una versión nueva de la app.
 
 ### Instagram y TikTok

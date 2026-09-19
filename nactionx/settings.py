@@ -174,6 +174,19 @@ def validate(partial):
     return clean
 
 
+def parse_audio_track(value):
+    """Pista de audio elegida para esta descarga: un código de idioma como «es», «es-419» o «zh-Hant».
+
+    No es un ajuste global: depende del vídeo, así que se valida aquí y no en VALIDATORS.
+    """
+    value = str(value or '').strip()
+    if not value:
+        return ''
+    if not re.fullmatch(r'[A-Za-z]{2,8}(-[A-Za-z0-9]{2,8}){0,2}', value):
+        raise SettingsError('Pista de audio no válida')
+    return value
+
+
 def parse_trim(start, end):
     """Valida el recorte opcional. Devuelve (inicio, fin) como texto normalizado o vacío."""
     from yt_dlp.utils import parse_duration
@@ -195,6 +208,7 @@ def job_options(requested, current):
     merged = {key: requested.get(key, current.get(key)) for key in JOB_OPTION_KEYS}
     options = {**{k: current[k] for k in JOB_OPTION_KEYS}, **validate(merged)}
     options['start'], options['end'] = parse_trim(requested.get('start'), requested.get('end'))
+    options['audio_track'] = parse_audio_track(requested.get('audio_track'))
     return options
 
 

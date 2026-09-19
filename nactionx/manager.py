@@ -278,14 +278,20 @@ class Manager:
     # ------------------------------------------------------------ acciones
     def add(self, items, options, subfolder='', top=False):
         opts = settings_mod.job_options(options, self.settings.snapshot())
+        def dup_key(url, options):
+            """Qué hace que dos descargas sean la misma. La pista de audio cuenta: el mismo vídeo en
+            español y en alemán son dos archivos distintos, no una repetición."""
+            return (media_key(url), options.get('mode'), options.get('start'), options.get('end'),
+                    options.get('audio_track') or '')
+
         with self.lock:
-            busy = {(media_key(j['url']), j['options'].get('mode'), j['options'].get('start'), j['options'].get('end'))
+            busy = {dup_key(j['url'], j['options'])
                     for j in self.jobs if j['status'] in ACTIVE or j['status'] in PENDING}
             created, duplicates = [], 0
             for item in items or []:
                 if not item.get('url'):
                     continue
-                key = (media_key(item['url']), opts['mode'], opts['start'], opts['end'])
+                key = dup_key(item['url'], opts)
                 if key in busy:
                     duplicates += 1
                     continue

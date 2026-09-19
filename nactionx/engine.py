@@ -184,7 +184,7 @@ def analyze(query, want_playlist, settings, components):
         'thumbnail': info.get('thumbnail') or (yt_thumb(info.get('id')) if 'youtube' in url else ''),
         'live_status': info.get('live_status') or ('is_live' if info.get('is_live') else ''),
         'release_timestamp': info.get('release_timestamp'),
-        'qualities': qualities, 'audio_size': audio_size,
+        'qualities': qualities, 'audio_size': audio_size, 'audio_tracks': formats.audio_tracks(info),
         'chapters': len(info.get('chapters') or []),
         'subtitles': sorted((info.get('subtitles') or {}).keys())[:40],
         'has_playlist': 'list=' in query and ('youtube' in query or 'youtu.be' in query),
@@ -314,9 +314,13 @@ class Download:
             job['outdir'] = folder
         if job.get('outname'):
             template = job['outname'].replace('%', '%%') + '.%(ext)s'
-        elif start or end:
-            suffix = f' (recorte {mmss(start or 0)}-{mmss(end)})'
-            template = (template[:-len('.%(ext)s')] + suffix + '.%(ext)s') if template.endswith('.%(ext)s') else template + suffix
+        else:
+            suffix = f' (recorte {mmss(start or 0)}-{mmss(end)})' if start or end else ''
+            # Sin esto, el mismo vídeo en dos idiomas daba «Vídeo.mp4» y «Vídeo (2).mp4», indistinguibles.
+            if options.get('audio_track'):
+                suffix += f' ({formats.language_label(options["audio_track"])})'
+            if suffix:
+                template = (template[:-len('.%(ext)s')] + suffix + '.%(ext)s') if template.endswith('.%(ext)s') else template + suffix
         # Solo la plantilla: la carpeta va en 'paths'. Si la carpeta formara parte de la plantilla, el límite de
         # longitud de yt-dlp se aplicaría a la ruta entera y cortaría el nombre (y el sufijo de recorte).
         return template
@@ -345,15 +349,16 @@ class Download:
             categories = ['sponsor', 'selfpromo', 'interaction']
             pps.append({'key': 'SponsorBlock', 'categories': categories, 'when': 'after_filter'})
             pps.append({'key': 'ModifyChapters', 'remove_sponsor_segments': categories})
+        track = options.get('audio_track') or ''
         if mode == 'audio':
-            opts['format'] = 'ba/b'
+            opts['format'] = formats.audio_only_selection(track)
             if audio_format != 'original':
                 lossy = audio_format in formats.LOSSY_AUDIO
                 pps.append({'key': 'FFmpegExtractAudio', 'preferredcodec': audio_format,
                             'preferredquality': str(options.get('audio_bitrate') or '320') if lossy else '0'})
         else:
             opts.update(formats.video_selection(options.get('quality'), container, options.get('codec'),
-                                                progressive=sites.progressive(job['url'])))
+                                                progressive=sites.progressive(job['url']), audio_track=track))
         if trimming:
             pps.append({'key': 'Trim', 'start': start, 'end': end, 'bitrate': options.get('audio_bitrate') or '320'})
         if mode == 'video' and options.get('subtitles') and not trimming:
@@ -480,6 +485,12 @@ class Download:
                 codec = (video.get('vcodec') or '').split('.')[0]
                 codec = {'avc1': 'H.264', 'av01': 'AV1', 'vp09': 'VP9', 'vp9': 'VP9', 'hev1': 'HEVC', 'hvc1': 'HEVC'}.get(codec, codec.upper())
                 label = ' · '.join(x for x in [container.upper(), formats.quality_label(side, video.get('fps')) if side else '', codec] if x)
+            if job['options'].get('audio_track'):
+                # Del formato que se ha elegido de verdad, no del que se pidió: si el vídeo no tenía esa
+                # pista, el selector cae en la de siempre y la etiqueta debe decir la verdad.
+                chosen = next((f for f in requested if f.get('acodec') not in (None, 'none')), {})
+                if chosen.get('language'):
+                    label += ' · ' + formats.language_label(chosen['language'], chosen.get('format_note'))
             self.set(structural=True, title=info.get('title') or job['title'],
                      uploader=info.get('channel') or info.get('uploader') or job['uploader'],
                      duration=info.get('duration') or job['duration'],

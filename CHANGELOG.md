@@ -1,5 +1,16 @@
 # Cambios
 
+## 1.2.0 — elegir la pista de audio
+
+### Novedades
+- **Selector de pista de audio.** En los vídeos con varios idiomas (habitual en YouTube), la vista previa muestra un desplegable «Pista de audio» con todas las disponibles, la original marcada y primera. Vale tanto para vídeo como para «solo audio», y se puede combinar con el recorte.
+- El idioma elegido aparece en la etiqueta de la descarga (`MP4 · 1080p · H.264 · Español`) y en el nombre del archivo, para poder distinguir el mismo vídeo en dos idiomas.
+- En los vídeos con una sola pista no aparece nada: la interfaz no cambia.
+
+### Correcciones
+- El mismo vídeo en dos idiomas distintos se descartaba como repetido y solo se descargaba el primero: la detección de duplicados no miraba la pista de audio.
+- Si el vídeo no tiene la pista pedida, se usa la de siempre en lugar de fallar, y la etiqueta dice cuál se usó de verdad.
+
 ## 1.1.0 — Instagram, TikTok y aviso de versión
 
 ### Novedades

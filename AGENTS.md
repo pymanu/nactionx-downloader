@@ -7,7 +7,7 @@ Si algo de aquí contradice lo que ves en el código, gana el código: avisa y c
 
 ## 1. Qué es esto
 
-**NactionX Downloader 1.1.0** es un gestor de descargas de vídeo y audio de escritorio para Windows y
+**NactionX Downloader 1.2.0** es un gestor de descargas de vídeo y audio de escritorio para Windows y
 macOS, de uso personal. Descarga con [yt-dlp](https://github.com/yt-dlp/yt-dlp) y convierte con FFmpeg.
 
 No es una librería ni un servicio: es una aplicación que una persona concreta abre, usa y espera que
@@ -43,7 +43,7 @@ Eres quien implementa y **verifica**. No eres quien decide por el usuario.
    escrito vale más que una promesa que se cae al primer uso.
 4. **No amplíes el encargo por tu cuenta.** Si ves algo que arreglarías, dilo; no lo hagas sin pedirlo.
 5. **Antes de dar por cerrado un cambio, ejecuta los tests.** `python -m pytest tests -q` y que pasen
-   los 93 (o los que haya). Añade tests para lo que cambies.
+   los 121 (o los que haya). Añade tests para lo que cambies.
 
 ### Restricciones duras
 
@@ -108,7 +108,8 @@ ventana nativa (pywebview). No hay base de datos: el estado es JSON en disco.
 
 1. **Todo ajuste pasa por `settings.validate()`.** Claves desconocidas se ignoran; valores inválidos
    lanzan `SettingsError` con mensaje en español. Un ajuste corrupto en disco nunca debe romper el
-   arranque: se descarta y se registra.
+   arranque: se descarta y se registra. Las opciones que dependen del vídeo y no son ajustes globales
+   (`start`, `end`, `audio_track`) se validan aparte, en `job_options()`.
 2. **`api.py` es la única puerta.** Token `X-NactionX-Token` por sesión, puerto dinámico, solo
    `127.0.0.1`, comprobación de la cabecera `Host`. El CSP tiene `connect-src 'self'`: **la interfaz
    no puede llamar a servicios externos**. Si hace falta hablar con Internet (por ejemplo GitHub),
@@ -280,11 +281,20 @@ Errores reales de este proyecto. **No los repitas.**
 10. **Los enlaces compartidos de Instagram y TikTok llevan identificadores de sesión** (`igsh`,
     `is_from_webapp`…). Sin limpiarlos, el mismo vídeo entra dos veces en la cola.
 
+11. **La clave de duplicados de `manager.add()` define qué es «la misma descarga».** Al añadir la
+    pista de audio, el mismo vídeo en español y en alemán se descartaba como repetido y solo bajaba
+    el primero. Si añades una opción que cambia el archivo resultante, tiene que entrar en esa clave
+    **y** en el nombre del archivo, o el usuario acaba con «Vídeo.mp4» y «Vídeo (2).mp4».
+
+12. **Antes de declarar un fallo, comprueba que tu prueba no lo ha causado.** Un «TAG:language=eng»
+    en un audio en español resultó venir de que el propio script de prueba desactivaba
+    `embed_metadata`. Con los ajustes reales la etiqueta era correcta.
+
 ---
 
 ## 9. Estado actual y límites conocidos
 
-**Versión 1.1.0.** 93 tests. Windows, macOS Apple Silicon y macOS Intel compilados y con la prueba
+**Versión 1.2.0.** 121 tests. Windows, macOS Apple Silicon y macOS Intel compilados y con la prueba
 automática superada en máquinas reales.
 
 Plataformas verificadas con descargas reales: YouTube, Instagram, TikTok.
