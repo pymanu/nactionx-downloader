@@ -10,14 +10,13 @@ import json
 import os
 import re
 import shutil
-import ssl
 import subprocess
 import sys
 import threading
 import time
 import urllib.request
 
-from . import __version__, log, paths, platform_utils, storage
+from . import __version__, log, net, paths, platform_utils, storage
 
 logger = log.get('components')
 
@@ -178,7 +177,12 @@ class Components:
             issues.append('No hay motor JavaScript (Deno): YouTube ofrecerá menos calidades.')
         if not ejs:
             issues.append('Falta el componente yt-dlp-ejs: YouTube ofrecerá menos calidades.')
+        certificates = net.source()
+        if not certificates:
+            issues.append('No se encontraron certificados para conexiones seguras: no se podrá actualizar '
+                          'el motor ni comprobar si hay una versión nueva de la app.')
         return {
+            'certificates': certificates,
             'ytdlp': yt_dlp.version.__version__,
             'ytdlp_source': 'actualizado' if _overlay_version else 'incluido',
             'ejs': str(ejs),
@@ -194,14 +198,8 @@ class Components:
 
     # -- actualización del motor
     def _open(self, url, timeout=30):
-        context = ssl.create_default_context()
-        try:
-            import certifi
-            context.load_verify_locations(certifi.where())
-        except Exception:
-            pass
         request = urllib.request.Request(url, headers={'User-Agent': USER_AGENT, 'Accept': 'application/json'})
-        return urllib.request.urlopen(request, timeout=timeout, context=context)
+        return net.urlopen(request, timeout=timeout)
 
     def _pypi(self, project, version=None):
         url = f'https://pypi.org/pypi/{project}/{version}/json' if version else f'https://pypi.org/pypi/{project}/json'

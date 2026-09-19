@@ -133,6 +133,17 @@ def main():
     check(components['js_source'] == 'incluido', 'Motor JavaScript incluido', components.get('js_source'))
     check(bool(components['ejs']), 'Componente yt-dlp-ejs presente')
     check(not components['issues'], 'Sin problemas de componentes', str(components['issues']))
+    # En macOS, la app empaquetada busca los certificados en la ruta que OpenSSL trae compilada. Esa
+    # ruta existe en la máquina que compila, así que aquí nunca se vería el fallo: lo que hay que
+    # comprobar es que el paquete de certificados viaja DENTRO de la app, que es lo que lo arregla
+    # en cualquier ordenador.
+    check(components.get('certificates') == 'certifi', 'Los certificados HTTPS viajan dentro de la app',
+          str(components.get('certificates')))
+    update = api(info, '/api/app/update-check', {}, timeout=60)
+    check('certificate' not in (update.get('message', '') + update.get('error', '')).lower()
+          and 'SSL' not in update.get('error', ''), 'La comprobación de versión no falla por certificados',
+          f'{update.get("state")}: {update.get("message")}')
+    print(f'Comprobación de versión: {update.get("state")} — {update.get("message")}', flush=True)
 
     api(info, '/api/settings', {'values': {'folder': str(downloads)}})
     api(info, '/api/add', {'items': [{'url': video_url, 'title': 'prueba'}], 'options': {'mode': 'video'}})

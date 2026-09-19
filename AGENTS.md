@@ -7,7 +7,7 @@ Si algo de aquí contradice lo que ves en el código, gana el código: avisa y c
 
 ## 1. Qué es esto
 
-**NactionX Downloader 1.2.0** es un gestor de descargas de vídeo y audio de escritorio para Windows y
+**NactionX Downloader 1.2.1** es un gestor de descargas de vídeo y audio de escritorio para Windows y
 macOS, de uso personal. Descarga con [yt-dlp](https://github.com/yt-dlp/yt-dlp) y convierte con FFmpeg.
 
 No es una librería ni un servicio: es una aplicación que una persona concreta abre, usa y espera que
@@ -43,7 +43,7 @@ Eres quien implementa y **verifica**. No eres quien decide por el usuario.
    escrito vale más que una promesa que se cae al primer uso.
 4. **No amplíes el encargo por tu cuenta.** Si ves algo que arreglarías, dilo; no lo hagas sin pedirlo.
 5. **Antes de dar por cerrado un cambio, ejecuta los tests.** `python -m pytest tests -q` y que pasen
-   los 121 (o los que haya). Añade tests para lo que cambies.
+   los 126 (o los que haya). Añade tests para lo que cambies.
 
 ### Restricciones duras
 
@@ -101,6 +101,7 @@ ventana nativa (pywebview). No hay base de datos: el estado es JSON en disco.
 | `platform_utils.py` | Todo lo específico de cada sistema operativo | Aparecer fuera de aquí |
 | `components.py` | Encontrar FFmpeg/Deno; actualizar yt-dlp desde PyPI | — |
 | `updates.py` | Aviso de versión nueva de la app | Instalar nada solo |
+| `net.py` | Contexto TLS y `urlopen` de la app: carga los certificados a mano | — |
 | `storage.py` | JSON atómico y tolerante a bloqueos | — |
 | `log.py` | Registro rotativo | — |
 
@@ -290,11 +291,23 @@ Errores reales de este proyecto. **No los repitas.**
     en un audio en español resultó venir de que el propio script de prueba desactivaba
     `embed_metadata`. Con los ajustes reales la etiqueta era correcta.
 
+13. **Toda petición HTTPS de la app va por `net.urlopen()`, nunca por `urllib` directamente.** macOS
+    no le da a Python un almacén de certificados: la app empaquetada los busca en la ruta que OpenSSL
+    trae compilada, que existe en la máquina que compila y no en la del usuario. `updates.py` nació
+    usando `urllib` y en macOS no conectó nunca, mientras que `components.py` ya lo hacía bien: antes
+    de escribir código nuevo, mira si el problema ya está resuelto en otro módulo.
+
+14. **Un fallo que solo aparece en la máquina del usuario no lo caza la CI corriendo lo mismo.** La CI
+    compila y prueba en la misma máquina, así que la ruta de los certificados sí existe allí. Lo que
+    sí se puede comprobar en CI es la causa: que el paquete de certificados viaje dentro de la app
+    (`smoke_test.py` lo verifica). Cuando algo dependa del entorno del usuario, busca qué invariante
+    del paquete sí es comprobable.
+
 ---
 
 ## 9. Estado actual y límites conocidos
 
-**Versión 1.2.0.** 121 tests. Windows, macOS Apple Silicon y macOS Intel compilados y con la prueba
+**Versión 1.2.1.** 126 tests. Windows, macOS Apple Silicon y macOS Intel compilados y con la prueba
 automática superada en máquinas reales.
 
 Plataformas verificadas con descargas reales: YouTube, Instagram, TikTok.

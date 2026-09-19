@@ -1,5 +1,13 @@
 # Cambios
 
+## 1.2.1 — conexión segura en macOS
+
+### Correcciones
+- **En macOS, la app no podía conectarse a GitHub.** Ni el aviso de versión nueva ni la actualización del motor funcionaban: fallaban siempre con `CERTIFICATE_VERIFY_FAILED`. macOS no le da a Python un almacén de certificados utilizable, y la app empaquetada los buscaba en una ruta que solo existe en el ordenador donde se compiló. Ahora el paquete de certificados viaja dentro de la app.
+- Si algún día no hubiera certificados, *Ajustes → Motor* lo dice en lugar de fallar en silencio.
+
+Las descargas nunca estuvieron afectadas: yt-dlp resuelve esto por su cuenta.
+
 ## 1.2.0 — elegir la pista de audio
 
 ### Novedades

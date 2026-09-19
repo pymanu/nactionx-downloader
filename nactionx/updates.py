@@ -16,7 +16,7 @@ import urllib.error
 import urllib.request
 import webbrowser
 
-from . import APP_NAME, __version__, log, paths, storage
+from . import APP_NAME, __version__, log, net, paths, storage
 
 logger = log.get('updates')
 
@@ -76,7 +76,8 @@ def fetch_latest():
         'X-GitHub-Api-Version': '2022-11-28',
         'User-Agent': f'{APP_NAME}/{__version__}',
     })
-    with urllib.request.urlopen(request, timeout=TIMEOUT) as response:
+    # Por net.urlopen y no por urllib: en macOS, sin cargar los certificados a mano, esto falla siempre.
+    with net.urlopen(request, timeout=TIMEOUT) as response:
         return json.load(response)
 
 
