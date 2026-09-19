@@ -139,9 +139,17 @@ def main():
     # en cualquier ordenador.
     check(components.get('certificates') == 'certifi', 'Los certificados HTTPS viajan dentro de la app',
           str(components.get('certificates')))
+    # Si la comprobación del arranque sigue en marcha, esta devuelve «checking» al instante y no
+    # comprobaría nada: hay que esperar a que termine de verdad.
     update = api(info, '/api/app/update-check', {}, timeout=60)
-    check('certificate' not in (update.get('message', '') + update.get('error', '')).lower()
-          and 'SSL' not in update.get('error', ''), 'La comprobación de versión no falla por certificados',
+    for _ in range(30):
+        if update.get('state') != 'checking':
+            break
+        time.sleep(2)
+        update = api(info, '/api/app/update')
+    texto = f'{update.get("message", "")} {update.get("error", "")}'.lower()
+    check(update.get('state') != 'checking' and 'certificate' not in texto and 'ssl' not in texto,
+          'La comprobación de versión no falla por certificados',
           f'{update.get("state")}: {update.get("message")}')
     print(f'Comprobación de versión: {update.get("state")} — {update.get("message")}', flush=True)
 
