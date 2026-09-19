@@ -15,6 +15,8 @@ Los **perfiles enteros** no se pueden listar: ni Instagram ni TikTok lo permiten
 
 ## Instalar
 
+Descarga la última versión en **[github.com/pymanu/nactionx-downloader-releases/releases/latest](https://github.com/pymanu/nactionx-downloader-releases/releases/latest)**.
+
 ### Windows 10/11
 - **Instalador (recomendado):** ejecuta `NactionX-Downloader-<versión>-Windows-x64-Setup.exe`. No pide permisos de administrador y crea accesos en el escritorio y en el menú Inicio. Si SmartScreen avisa de que la app no es conocida, pulsa **Más información → Ejecutar de todas formas**: el aviso sale porque el instalador no está firmado con un certificado de pago.
 - **Portable:** descomprime `NactionX-Downloader-<versión>-Windows-x64-Portable.zip` donde quieras y abre `NactionX Downloader.cmd`. En **Ajustes → Comportamiento** puedes crear los accesos directos.
