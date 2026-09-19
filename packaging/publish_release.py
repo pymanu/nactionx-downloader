@@ -35,6 +35,12 @@ def changelog_notes(version):
 
 
 def main():
+    # La consola de Windows usa cp1252 y revienta al imprimir las notas del CHANGELOG (flechas, tildes).
+    for stream in (sys.stdout, sys.stderr):
+        try:
+            stream.reconfigure(encoding='utf-8', errors='replace')
+        except (AttributeError, ValueError):
+            pass
     parser = argparse.ArgumentParser()
     parser.add_argument('--version', default=__version__)
     parser.add_argument('--dir', default=str(ROOT / 'releases'))
