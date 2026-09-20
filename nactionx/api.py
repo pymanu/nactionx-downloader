@@ -22,7 +22,10 @@ URL_RE = re.compile(r'https?://[^\s<>"\']+')
 class ApiServer:
     def __init__(self, manager, settings, components, host='127.0.0.1', port=0, desktop=None):
         self.manager, self.settings, self.components = manager, settings, components
-        self.token = secrets.token_urlsafe(24)
+        # Normalmente el token es de un solo uso y muere con la sesión. Al servir la app desde un
+        # servidor detrás de un proxy hace falta que la dirección no cambie en cada arranque, y para
+        # eso está NACTIONX_TOKEN. Nunca lo pongas si la app es accesible sin contraseña delante.
+        self.token = os.environ.get('NACTIONX_TOKEN') or secrets.token_urlsafe(24)
         self.desktop = desktop  # objeto con pick_folder/pick_file/focus/restart/quit cuando hay ventana nativa
         self.app_updates = updates.AppUpdates()
         server = self
@@ -52,7 +55,10 @@ class ApiServer:
 
     def stop(self):
         try:
-            self.httpd.shutdown()
+            # shutdown() espera a que el bucle de serve_forever confirme la parada: si nunca se llamó
+            # a start(), esa confirmación no llega nunca y el cierre se queda colgado para siempre.
+            if self.thread and self.thread.is_alive():
+                self.httpd.shutdown()
             self.httpd.server_close()
         except Exception:
             pass

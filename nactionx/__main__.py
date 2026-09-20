@@ -10,6 +10,8 @@ def parse_args(argv=None):
     parser.add_argument('--no-open', action='store_true', help='Con --browser, no abrir el navegador')
     parser.add_argument('--debug', action='store_true', help='Registro detallado y herramientas de desarrollo')
     parser.add_argument('--data-dir', help='Carpeta de datos alternativa (pruebas)')
+    parser.add_argument('--port', type=int, default=0,
+                        help='Puerto fijo en 127.0.0.1 (para poner un proxy delante). Por defecto, uno libre')
     parser.add_argument('--wait-pid', type=int, help=argparse.SUPPRESS)
     args, _unknown = parser.parse_known_args(argv)  # macOS puede añadir argumentos propios (-psn_...)
     return args

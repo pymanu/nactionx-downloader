@@ -115,7 +115,7 @@ def run(args, settings, components, manager_cls, api_cls, migrate):
 
     bridge = Bridge()
     controller = None if args.browser else DesktopController(bridge)
-    server = api_cls(manager, settings, components, desktop=controller)
+    server = api_cls(manager, settings, components, desktop=controller, port=getattr(args, 'port', 0) or 0)
     server.start()
     storage.write_json(instance_path(), {'pid': os.getpid(), 'port': server.port, 'token': server.token})
 
