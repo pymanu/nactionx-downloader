@@ -12,3 +12,6 @@ legacy/data/
 .pytest_cache/
 *.lnk
 *.ico.bak
+
+# Modulo de marcas de agua: sin terminar, se guarda aqui hasta que este listo (no se rastrea)
+wip-watermark/
