@@ -82,7 +82,7 @@ Otros modos:
 macOS no se puede compilar desde Windows. Por eso los DMG se generan en las máquinas Mac de GitHub Actions.
 
 ## Publicar una versión
-El código está en un repositorio privado y los instaladores en uno público, `pymanu/nactionx-downloader-releases`, para que la app pueda comprobar si hay versión nueva sin llevar ninguna credencial dentro.
+Los instaladores se publican aparte, en `pymanu/nactionx-downloader-releases`, que es de donde la app lee si hay una versión nueva.
 
 1. Sube la versión en `nactionx/__init__.py` y escribe su sección en `CHANGELOG.md`.
 2. Lanza el flujo de *Actions* y deja los tres archivos (`Setup.exe` y los dos `.dmg`) en `releases/`.
@@ -90,5 +90,9 @@ El código está en un repositorio privado y los instaladores en uno público, `
 
 A partir de ahí, las apps ya instaladas ven el aviso la próxima vez que se abran.
 
-## Licencias
-Consulta `THIRD_PARTY_NOTICES.md`. Uso personal: descarga solo contenido que tengas derecho a guardar y respeta los términos de cada plataforma.
+## Licencia
+El código de NactionX Downloader es **software libre bajo licencia MIT** (ver `LICENSE`): puedes usarlo, modificarlo y redistribuirlo.
+
+Los instaladores incluyen además componentes de terceros con sus propias licencias, algunas GPL (FFmpeg, mutagen). Si redistribuyes los instaladores, tienes que cumplirlas: `THIRD_PARTY_NOTICES.md` recoge cuáles son y dónde está su código.
+
+Uso personal: descarga solo contenido que tengas derecho a guardar y respeta los términos de cada plataforma.

@@ -15,16 +15,15 @@ funcione. Cada decisión se juzga por eso.
 
 | | |
 |---|---|
-| Propietario | Manuel (`pymanu` en GitHub). Habla español. |
+| Propietario | `pymanu` en GitHub. Habla español. |
 | Idioma | **Todo lo que ve el usuario va en español**: interfaz, errores, notificaciones, documentación. El código (nombres de variables, funciones) va en inglés; los comentarios y docstrings, en español. |
-| Código | `pymanu/nactionx-downloader` — **privado** |
+| Código | `pymanu/nactionx-downloader` — **público**, licencia MIT |
 | Descargas | `pymanu/nactionx-downloader-releases` — **público**, solo instaladores |
-| Carpeta de trabajo | `C:\Users\albov\OneDrive\Desktop\descargador` |
+| Carpeta de trabajo | la carpeta donde clones el repositorio |
 
 ### Por qué hay dos repositorios
-La app comprueba si hay una versión nueva consultando la API pública de GitHub. Consultar las
-publicaciones de un repositorio privado exigiría llevar un token dentro del ejecutable, y un token
-dentro de un ejecutable no es un secreto. Por eso el código es privado y los instaladores públicos.
+Los instaladores pesan medio giga por versión y no pintan nada en el repositorio del código. Viven
+aparte, en `nactionx-downloader-releases`, que es de donde la app lee si hay una versión nueva.
 
 ---
 
@@ -54,7 +53,7 @@ Eres quien implementa y **verifica**. No eres quien decide por el usuario.
 - **Nunca subas datos del usuario al repositorio.** `.gitignore` excluye `data/`, `releases/`,
   `packaging/bin/` y `*.lnk`. Comprueba `git status` antes de cada commit.
 - **Nada de compilar dentro de OneDrive.** La carpeta del proyecto está sincronizada; PyInstaller e
-  Inno Setup fallan o corrompen archivos ahí. Todo lo pesado va a `C:\Users\albov\.nactionx-dev\`
+  Inno Setup fallan o corrompen archivos ahí. Todo lo pesado va a `%USERPROFILE%\.nactionx-dev\`
   (entorno virtual, descargas, `dist`, `build`, artefactos).
 - **Publicar es irreversible y público.** Crear repositorios públicos, publicar versiones o hacer
   público lo privado se pregunta antes. Siempre.
@@ -136,15 +135,15 @@ ventana nativa (pywebview). No hay base de datos: el estado es JSON en disco.
 El entorno de desarrollo ya existe, **fuera de OneDrive**:
 
 ```bash
-C:/Users/albov/.nactionx-dev/venv/Scripts/python.exe
+%USERPROFILE%/.nactionx-dev/venv/Scripts/python.exe
 ```
 
 Si hay que rehacerlo (Windows necesita **Python 3.13 de 64 bits**, para que los paquetes coincidan
 con el Python embebido del paquete final):
 
 ```bash
-python -m venv C:/Users/albov/.nactionx-dev/venv
-C:/Users/albov/.nactionx-dev/venv/Scripts/python.exe -m pip install -r requirements-build.txt
+python -m venv %USERPROFILE%/.nactionx-dev/venv
+%USERPROFILE%/.nactionx-dev/venv/Scripts/python.exe -m pip install -r requirements-build.txt
 ```
 
 | Para | Comando |
@@ -162,8 +161,8 @@ C:/Users/albov/.nactionx-dev/venv/Scripts/python.exe -m pip install -r requireme
 ### GitHub
 
 ```bash
-export GH_CONFIG_DIR="C:/Users/albov/.nactionx-dev/gh-config"
-C:/Users/albov/.nactionx-dev/gh/bin/gh.exe auth status
+export GH_CONFIG_DIR="%USERPROFILE%/.nactionx-dev/gh-config"
+%USERPROFILE%/.nactionx-dev/gh/bin/gh.exe auth status
 ```
 
 La sesión es del usuario. Si caduca, hay que pedirle que autorice un código nuevo: no se puede hacer
