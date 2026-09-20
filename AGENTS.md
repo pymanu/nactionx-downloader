@@ -101,6 +101,7 @@ ventana nativa (pywebview). No hay base de datos: el estado es JSON en disco.
 | `components.py` | Encontrar FFmpeg/Deno; actualizar yt-dlp desde PyPI | — |
 | `updates.py` | Aviso de versión nueva de la app | Instalar nada solo |
 | `net.py` | Contexto TLS y `urlopen` de la app: carga los certificados a mano | — |
+| `cookies.py` | Valida y guarda el `cookies.txt` subido desde la interfaz | Borrar un archivo fuera de la carpeta de datos |
 | `storage.py` | JSON atómico y tolerante a bloqueos | — |
 | `log.py` | Registro rotativo | — |
 
@@ -301,12 +302,18 @@ Errores reales de este proyecto. **No los repitas.**
     sí se puede comprobar en CI es la causa: que el paquete de certificados viaje dentro de la app
     (`smoke_test.py` lo verifica). Cuando algo dependa del entorno del usuario, busca qué invariante
     del paquete sí es comprobable.
+15. **Reescribir un archivo con Python en Windows le cambia los finales de línea.** `read_text()`
+    convierte CRLF a `
+` y `write_text()` lo devuelve como CRLF. `.gitattributes` normaliza `*.py`,
+    pero **no `.js` ni `.html`**: editar `app.js` así lo deja entero como modificado (2221 líneas en
+    vez de 43) y la historia se vuelve ilegible. Mira siempre `git diff --cached --stat` antes de
+    commitear; si sale el archivo completo, arréglalo con `sed -i 's/$//'` y vuelve a añadirlo.
 
 ---
 
 ## 9. Estado actual y límites conocidos
 
-**Versión 1.2.1.** 126 tests. Windows, macOS Apple Silicon y macOS Intel compilados y con la prueba
+**Versión 1.2.2.** 148 tests. Windows, macOS Apple Silicon y macOS Intel compilados y con la prueba
 automática superada en máquinas reales.
 
 Plataformas verificadas con descargas reales: YouTube, Instagram, TikTok.

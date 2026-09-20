@@ -9,7 +9,7 @@ import threading
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs, urlparse
 
-from . import APP_NAME, __version__, errors, log, paths, platform_utils, updates
+from . import APP_NAME, __version__, cookies, errors, log, paths, platform_utils, updates
 from .settings import SettingsError
 
 logger = log.get('api')
@@ -211,8 +211,7 @@ class RequestHandler(BaseHTTPRequestHandler):
         if path == '/api/queue':
             return self.json({'ok': manager.queue_action(str(b.get('action')))})
         if path == '/api/settings':
-            updated = app.settings.update(b.get('values') or {})
-            return self.json({'settings': updated, 'folder': platform_utils.folder_info(updated['folder'])})
+            return self.json(self.saved_settings(b.get('values') or {}))
         if path == '/api/history':
             manager.history_action(str(b.get('action')), b.get('id'))
             return self.json({'ok': True})
@@ -226,6 +225,14 @@ class RequestHandler(BaseHTTPRequestHandler):
             if app.desktop:
                 return self.json({'path': app.desktop.pick_file(b.get('initial') or '')})
             return self.fail('El selector de archivos solo está disponible en la app de escritorio', 400)
+        if path == '/api/cookies':
+            # Servida desde un servidor, la app no puede abrir un diálogo ni leer el disco del
+            # usuario: la interfaz sube el contenido y se guarda junto a los datos de la app.
+            saved = cookies.save(str(b.get('text') or ''))
+            return self.json(self.saved_settings({'cookies_file': str(saved)}))
+        if path == '/api/cookies-clear':
+            cookies.discard(app.settings.get('cookies_file'))
+            return self.json(self.saved_settings({'cookies_file': ''}))
         if path == '/api/components/check':
             return self.json(app.components.check_update())
         if path == '/api/components/update':
@@ -252,6 +259,10 @@ class RequestHandler(BaseHTTPRequestHandler):
                 app.desktop.focus()
             return self.json({'ok': True})
         return self.fail('Ruta desconocida', 404)
+
+    def saved_settings(self, values):
+        updated = self.app.settings.update(values)
+        return {'settings': updated, 'folder': platform_utils.folder_info(updated['folder'])}
 
     def open_path(self, b):
         app, mode, path = self.app, b.get('mode'), str(b.get('path') or '')

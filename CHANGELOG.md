@@ -1,5 +1,13 @@
 # Cambios
 
+## 1.2.2 — subir el archivo de cookies
+
+### Novedades
+- **El `cookies.txt` se sube desde la interfaz.** Antes había que elegirlo con un diálogo del sistema, que solo existe en la app de escritorio: si la app se usaba desde el navegador de otro ordenador, no había forma de darle las cookies. Ahora el botón sube el archivo y la app guarda su propia copia.
+- Si el archivo no trae la cabecera `# Netscape HTTP Cookie File`, se le añade. Varias extensiones exportan sin ella y el motor los rechazaba con un error que no decía qué hacer.
+- Un archivo que no sea un `cookies.txt` se rechaza al subirlo, con un mensaje que explica cómo exportarlo, en vez de fallar más tarde en mitad de una descarga.
+- Al pulsar «Quitar», la copia se borra del disco. Es una sesión iniciada: no tiene por qué quedarse ahí.
+
 ## 1.2.1 — conexión segura en macOS
 
 ### Correcciones

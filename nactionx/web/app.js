@@ -478,6 +478,7 @@ function syncControls() {
   $('#cookiesFilePath').textContent = s.cookies_file || 'Ninguno';
   $('#cookiesFilePath').title = s.cookies_file || '';
   $('#btnCookiesClear').hidden = !s.cookies_file;
+  $('#btnCookiesFile').textContent = S.app.desktop ? 'Elegir archivo' : 'Subir archivo';
   const chromium = ['chrome', 'edge', 'brave', 'opera', 'vivaldi'].includes(s.cookies_browser);
   const note = $('#cookiesNote');
   note.hidden = !(chromium && S.app.platform === 'win32');
@@ -563,15 +564,38 @@ async function pickFolder() {
 
 async function pickCookiesFile() {
   try {
-    let path = '';
-    if (window.pywebview && window.pywebview.api && window.pywebview.api.pick_file) path = await window.pywebview.api.pick_file('');
-    else path = await openDialog({
-      title: 'Archivo de cookies', body: 'Escribe la ruta completa del archivo cookies.txt.',
-      html: '<input id="dlgPath" spellcheck="false">',
-      buttons: [{label: 'Cancelar', cls: 'ghost', value: '', cancel: true}, {label: 'Guardar', cls: 'primary', default: true, getValue: box => box.querySelector('#dlgPath').value.trim()}],
-    });
-    if (path) { S.pending.cookies_file = path; if (await flushSettings()) toast('Archivo de cookies guardado', 'ok'); }
+    if (window.pywebview && window.pywebview.api && window.pywebview.api.pick_file) {
+      const path = await window.pywebview.api.pick_file('');
+      if (path) { S.pending.cookies_file = path; if (await flushSettings()) toast('Archivo de cookies guardado', 'ok'); }
+      return;
+    }
+    // Servida desde un servidor, el archivo está en otra máquina: escribir su ruta no serviría de
+    // nada, hay que subir el contenido.
+    const input = $('#cookiesUpload');
+    input.value = '';
+    input.click();
   } catch (e) { toast(e.message, 'err'); }
+}
+
+function applySettings(r) {
+  S.settings = {...r.settings, ...S.pending};
+  S.folder = r.folder;
+  syncControls(); renderFolder();
+}
+
+async function uploadCookiesFile(file) {
+  if (!file) return;
+  try {
+    applySettings(await api('/api/cookies', {text: await file.text()}));
+    toast('Archivo de cookies guardado', 'ok', file.name);
+  } catch (e) { toast('No se pudo guardar el archivo de cookies', 'err', e.message); }
+}
+
+async function clearCookiesFile() {
+  try {
+    applySettings(await api('/api/cookies-clear', {}));
+    toast('Archivo de cookies quitado');
+  } catch (e) { toast('No se pudo quitar el archivo de cookies', 'err', e.message); }
 }
 
 /* ================= análisis y vista previa ================= */
@@ -906,7 +930,8 @@ $('#tplInput').addEventListener('keydown', e => { if (e.key === 'Enter') $('#tpl
 $('#btnAdv').addEventListener('click', () => { const adv = $('#adv'); adv.hidden = !adv.hidden; ls.set('adv', !adv.hidden); $('#btnAdv').classList.toggle('on', !adv.hidden); $('#btnAdv').setAttribute('aria-expanded', String(!adv.hidden)); });
 $('#btnProxySave').addEventListener('click', async () => { S.pending.proxy = $('#proxyInput').value.trim(); if (await flushSettings()) toast(S.settings.proxy ? 'Proxy guardado' : 'Proxy desactivado', 'ok'); });
 $('#btnCookiesFile').addEventListener('click', pickCookiesFile);
-$('#btnCookiesClear').addEventListener('click', async () => { S.pending.cookies_file = ''; if (await flushSettings()) toast('Archivo de cookies quitado'); });
+$('#cookiesUpload').addEventListener('change', e => uploadCookiesFile(e.target.files[0]));
+$('#btnCookiesClear').addEventListener('click', clearCookiesFile);
 $('#btnCheckUpdate').addEventListener('click', () => checkUpdates(false));
 $('#btnInstallUpdate').addEventListener('click', installUpdate);
 $('#btnRestart').addEventListener('click', restartApp);
